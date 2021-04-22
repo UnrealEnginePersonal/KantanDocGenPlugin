@@ -42,11 +42,15 @@ version="2.0">
 
 	<xsl:template match="class">
 		<tr>
-			<td>
+			<td width="30%">
 				<a>
 					<xsl:attribute name="href">./<xsl:value-of select="id" />/<xsl:value-of select="id" />.html</xsl:attribute>
-					<xsl:apply-templates select="display_name" />			
+					<xsl:apply-templates select="display_name" />
 				</a>
+				<div class="param_type"><xsl:apply-templates select="group" /></div>
+			</td>
+			<td width="70%">
+				<xsl:apply-templates select="description" />
 			</td>
 		</tr>
 	</xsl:template>

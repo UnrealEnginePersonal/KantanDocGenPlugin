@@ -20,6 +20,7 @@
 #include "BlueprintBoundNodeSpawner.h"
 #include "BlueprintComponentNodeSpawner.h"
 #include "BlueprintEventNodeSpawner.h"
+#include "BlueprintBoundEventNodeSpawner.h"
 #include "K2Node_DynamicCast.h"
 #include "K2Node_Message.h"
 #include "HighResScreenshot.h"
@@ -77,6 +78,9 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 {
 	if(!IsSpawnerDocumentable(Spawner, SourceObject->IsA< UBlueprint >()))
 	{
+//@CYA EDIT add verbose log
+		UE_LOG(LogKantanDocGen, Verbose, TEXT("Spawner of class %s with node class %s (Object %s) is not documentable"), *Spawner->GetClass()->GetName(), Spawner->NodeClass ? *Spawner->NodeClass->GetName() : TEXT("None"), *GetNameSafe(SourceObject));
+//@CYA END
 		return nullptr;
 	}
 
@@ -88,7 +92,9 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 
 	if(K2NodeInst == nullptr)
 	{
-		UE_LOG(LogKantanDocGen, Warning, TEXT("Failed to create node from spawner of class %s with node class %s."), *Spawner->GetClass()->GetName(), Spawner->NodeClass ? *Spawner->NodeClass->GetName() : TEXT("None"));
+//@CYA EDIT add SourceObject
+		UE_LOG(LogKantanDocGen, Warning, TEXT("Failed to create node from spawner of class %s with node class %s (Object %s)."), *Spawner->GetClass()->GetName(), Spawner->NodeClass ? *Spawner->NodeClass->GetName() : TEXT("None"), *GetNameSafe(SourceObject));
+//@CYA EDIT
 		return nullptr;
 	}
 
@@ -300,6 +306,15 @@ TSharedPtr< FXmlFile > FNodeDocsGenerator::InitIndexXml(FString const& IndexTitl
 	return File;
 }
 
+//@CYA EDIT
+FString GetClassDescription(const UClass* Class)
+{
+	if (Class->HasAllClassFlags(CLASS_Interface))
+		return "## UInterface cannot be documented ##";
+	return Class->GetToolTipText().ToString();
+}
+//@CYA END
+
 TSharedPtr< FXmlFile > FNodeDocsGenerator::InitClassDocXml(UClass* Class)
 {
 	const FString FileTemplate = R"xxx(<?xml version="1.0" encoding="UTF-8"?>
@@ -311,6 +326,25 @@ TSharedPtr< FXmlFile > FNodeDocsGenerator::InitClassDocXml(UClass* Class)
 	AppendChildCDATA(Root, TEXT("docs_name"), DocsTitle);
 	AppendChildCDATA(Root, TEXT("id"), GetClassDocId(Class));
 	AppendChildCDATA(Root, TEXT("display_name"), FBlueprintEditorUtils::GetFriendlyClassDisplayName(Class).ToString());
+//@CYA EDIT
+	AppendChildCDATA(Root, TEXT("description"), GetClassDescription(Class));
+
+	FXmlNode* Props = AppendChild(Root, TEXT("properties"));
+
+	for (TFieldIterator<FProperty> It(Class, EFieldIteratorFlags::ExcludeSuper); It; ++It)
+	{
+		if ((It->PropertyFlags & (CPF_BlueprintVisible | CPF_Edit)) != 0)
+		{
+			FXmlNode* Prop = AppendChild(Props, TEXT("property"));
+			AppendChildCDATA(Prop, TEXT("type"), It->GetCPPType());
+			FString DisplayName = It->GetDisplayNameText().ToString();
+			AppendChildCDATA(Prop, TEXT("display_name"), DisplayName.Replace(TEXT(" "), TEXT("")));
+			FString ToolTip = It->GetToolTipText().ToString();
+			if (ToolTip != DisplayName)
+				AppendChildCDATA(Prop, TEXT("description"), ToolTip);
+		}
+	}
+//@CYA END
 	AppendChild(Root, TEXT("nodes"));
 
 	return File;
@@ -323,6 +357,16 @@ bool FNodeDocsGenerator::UpdateIndexDocWithClass(FXmlFile* DocFile, UClass* Clas
 	auto ClassElem = AppendChild(Classes, TEXT("class"));
 	AppendChildCDATA(ClassElem, TEXT("id"), ClassId);
 	AppendChildCDATA(ClassElem, TEXT("display_name"), FBlueprintEditorUtils::GetFriendlyClassDisplayName(Class).ToString());
+//@CYA EDIT ClassGroup & Description
+	TArray<FString> Groups;
+	Class->GetClassGroupNames(Groups);
+	if (Groups.Num() > 0)
+		AppendChildCDATA(ClassElem, TEXT("group"), Groups[0].Replace(TEXT("|"), TEXT(" ")));
+
+	FString ClassToolTip = GetClassDescription(Class);
+	if (ClassToolTip != FBlueprintEditorUtils::GetFriendlyClassDisplayName(Class).ToString())
+		AppendChildCDATA(ClassElem, TEXT("description"), ClassToolTip);
+//@CYA END
 	return true;
 }
 
@@ -520,6 +564,9 @@ bool FNodeDocsGenerator::IsSpawnerDocumentable(UBlueprintNodeSpawner* Spawner, b
 		UBlueprintDelegateNodeSpawner::StaticClass(),
 		UBlueprintBoundNodeSpawner::StaticClass(),
 		UBlueprintComponentNodeSpawner::StaticClass(),
+//@CYA EDIT
+		UBlueprintBoundEventNodeSpawner::StaticClass()
+//@CYA END
 	};
 
 	// Spawners of or deriving from the following classes will be excluded in a blueprint context

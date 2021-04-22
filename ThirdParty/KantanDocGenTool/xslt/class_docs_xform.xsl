@@ -30,8 +30,28 @@ version="2.0">
 		<a class="navbar_style">&gt;</a>
 		<a class="navbar_style"><xsl:value-of select="display_name" /></a>
 		<h1 class="title_style"><xsl:value-of select="display_name" /></h1>
+		<p><xsl:value-of select="description" /></p>
 		
+		<xsl:apply-templates select="properties" />
 		<xsl:apply-templates select="nodes" />
+	</xsl:template>
+
+	<xsl:template match="properties">
+		<h2 class="title_style">Properties</h2>
+		<table>
+			<tbody>
+				<xsl:apply-templates select="property">
+					<xsl:sort select="display_name"/>
+				</xsl:apply-templates>
+			</tbody>
+		</table>	
+	</xsl:template>
+	<xsl:template match="property">
+		<tr>
+			<td width="20%"><xsl:value-of select="type" /></td>
+			<td width="20%"><xsl:value-of select="display_name" /></td>
+			<td width="60%"><xsl:value-of select="description" /></td>
+		</tr>
 	</xsl:template>
 
 	<!-- Templates to match specific elements in the input xml -->
