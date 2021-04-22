@@ -284,13 +284,14 @@ namespace KantanDocGen
 
 						++Success;
 					}
-
-					string OutputClassPath = Path.Combine(OutputClassDir, ClassTitle + ".html");
-					ClassXform.TransformXml(Path.Combine(Sub, ClassTitle + ".xml"), OutputClassPath);
 				}
+                string OutputClassPath = Path.Combine(OutputClassDir, ClassTitle + ".html");
+                ClassXform.TransformXml(Path.Combine(Sub, ClassTitle + ".xml"), OutputClassPath);
 
-				// Copy the images for this class to the output directory
-				CopyWholeDirectory(Path.Combine(Sub, "img"), Path.Combine(OutputClassDir, "img"));
+                // Copy the images for this class to the output directory
+                string ImgDir = Path.Combine(Sub, "img");
+                if (Directory.Exists(ImgDir))
+                    CopyWholeDirectory(ImgDir, Path.Combine(OutputClassDir, "img"));
 			}
 
 			string OutputIndexPath = Path.Combine(OutputDir, "index.html");

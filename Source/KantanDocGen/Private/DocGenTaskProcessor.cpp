@@ -343,18 +343,6 @@ FDocGenTaskProcessor::EIntermediateProcessingResult FDocGenTaskProcessor::Proces
 		UE_LOG(LogKantanDocGen, Error, TEXT("Failed to locate plugin info"));
 		return EIntermediateProcessingResult::UnknownError;
 	}
-//@CYA EDIT create "img" folder everywhere as the next step will fail without them
-	IFileManager::Get().IterateDirectory(*IntermediateDir, [](const TCHAR* Pathname, bool bIsDir)
-	{
-		if (bIsDir)
-		{
-			FString ImgPath = FString(Pathname) / TEXT("img");
-			if (!IFileManager::Get().DirectoryExists(*ImgPath))
-				IFileManager::Get().MakeDirectory(*ImgPath, false);
-		}
-		return true;
-	});
-//@CYA END
 
 	const FString DocGenToolBinPath = Plugin->GetBaseDir() / TEXT("ThirdParty") / TEXT("KantanDocGenTool") / TEXT("bin");
 	const FString DocGenToolExeName = TEXT("KantanDocGen.exe");

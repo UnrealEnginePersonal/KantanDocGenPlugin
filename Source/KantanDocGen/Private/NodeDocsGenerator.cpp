@@ -76,26 +76,22 @@ bool FNodeDocsGenerator::GT_Init(FString const& InDocsTitle, FString const& InOu
 
 UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spawner, UObject* SourceObject, FNodeProcessingState& OutState)
 {
-	if(!IsSpawnerDocumentable(Spawner, SourceObject->IsA< UBlueprint >()))
+//@CYA EDIT document classes even without spawnable BP nodes
+	UK2Node* K2NodeInst = nullptr;
+	bool bIsDocumentable = IsSpawnerDocumentable(Spawner, SourceObject->IsA< UBlueprint >());
+	if (bIsDocumentable)
 	{
-//@CYA EDIT add verbose log
-		UE_LOG(LogKantanDocGen, Verbose, TEXT("Spawner of class %s with node class %s (Object %s) is not documentable"), *Spawner->GetClass()->GetName(), Spawner->NodeClass ? *Spawner->NodeClass->GetName() : TEXT("None"), *GetNameSafe(SourceObject));
-//@CYA END
-		return nullptr;
-	}
+		// Spawn an instance into the graph
+		auto NodeInst = Spawner->Invoke(Graph.Get(), IBlueprintNodeBinder::FBindingSet{}, FVector2D(0, 0));
 
-	// Spawn an instance into the graph
-	auto NodeInst = Spawner->Invoke(Graph.Get(), IBlueprintNodeBinder::FBindingSet{}, FVector2D(0, 0));
+		// Currently Blueprint nodes only
+		K2NodeInst = Cast< UK2Node >(NodeInst);
 
-	// Currently Blueprint nodes only
-	auto K2NodeInst = Cast< UK2Node >(NodeInst);
-
-	if(K2NodeInst == nullptr)
-	{
-//@CYA EDIT add SourceObject
-		UE_LOG(LogKantanDocGen, Warning, TEXT("Failed to create node from spawner of class %s with node class %s (Object %s)."), *Spawner->GetClass()->GetName(), Spawner->NodeClass ? *Spawner->NodeClass->GetName() : TEXT("None"), *GetNameSafe(SourceObject));
-//@CYA EDIT
-		return nullptr;
+		if (K2NodeInst == nullptr)
+		{
+			UE_LOG(LogKantanDocGen, Warning, TEXT("Failed to create node from spawner of class %s with node class %s (Object %s)."), *Spawner->GetClass()->GetName(), Spawner->NodeClass ? *Spawner->NodeClass->GetName() : TEXT("None"), *GetNameSafe(SourceObject));
+			return nullptr;
+		}
 	}
 
 	auto AssociatedClass = MapToAssociatedClass(K2NodeInst, SourceObject);
@@ -107,11 +103,14 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 		// Also update the index xml
 		UpdateIndexDocWithClass(IndexXml.Get(), AssociatedClass);
 	}
-	
-	OutState = FNodeProcessingState();
-	OutState.ClassDocXml = ClassDocsMap.FindChecked(AssociatedClass);
-	OutState.ClassDocsPath = OutputDir / GetClassDocId(AssociatedClass);
 
+	if (bIsDocumentable)
+	{
+		OutState = FNodeProcessingState();
+		OutState.ClassDocXml = ClassDocsMap.FindChecked(AssociatedClass);
+		OutState.ClassDocsPath = OutputDir / GetClassDocId(AssociatedClass);
+	}
+//@CYA END
 	return K2NodeInst;
 }
 
