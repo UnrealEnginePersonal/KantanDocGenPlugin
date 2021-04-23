@@ -306,12 +306,50 @@ TSharedPtr< FXmlFile > FNodeDocsGenerator::InitIndexXml(FString const& IndexTitl
 }
 
 //@CYA EDIT
-FString GetClassDescription(const UClass* Class)
+namespace
 {
-	if (Class->HasAllClassFlags(CLASS_Interface))
-		return "## UInterface cannot be documented ##";
-	return Class->GetToolTipText().ToString();
-}
+	FString GetClassDescription(const UClass* Class)
+	{
+		check(Class);
+		if (Class->HasAllClassFlags(CLASS_Interface))
+			return "## UInterface cannot be documented ##";
+
+		FString ClassToolTip = Class->GetToolTipText().ToString();
+		if (ClassToolTip != FBlueprintEditorUtils::GetFriendlyClassDisplayName(Class).ToString())
+			return ClassToolTip;
+		return "";
+	}
+
+	FString GetClassDocName(const UClass* Class)
+	{
+		check(Class);
+		FString Name = Class->GetName();
+		if (!Class->HasAnyClassFlags(CLASS_Native))
+		{
+			Name.RemoveFromEnd(TEXT("_C"));
+			Name.RemoveFromStart(TEXT("SKEL_"));
+		}
+		if (Class->HasMetaData("DisplayName"))
+			return Name + " (" + Class->GetDisplayNameText().ToString() + ")";
+		return Class->GetName();
+	}
+
+	FString GetNodeDescription(UEdGraphNode* Node)
+	{
+		check(Node);
+		FString NodeDesc = Node->GetTooltipText().ToString();
+		if (NodeDesc != Node->GetClass()->GetToolTipText().ToString())
+		{
+			int32 TargetIdx = NodeDesc.Find(TEXT("Target is "), ESearchCase::CaseSensitive);
+			if (TargetIdx != INDEX_NONE)
+			{
+				NodeDesc = NodeDesc.Left(TargetIdx).TrimEnd();
+			}
+			return NodeDesc;
+		}
+		return "";
+	}
+};
 //@CYA END
 
 TSharedPtr< FXmlFile > FNodeDocsGenerator::InitClassDocXml(UClass* Class)
@@ -324,8 +362,8 @@ TSharedPtr< FXmlFile > FNodeDocsGenerator::InitClassDocXml(UClass* Class)
 
 	AppendChildCDATA(Root, TEXT("docs_name"), DocsTitle);
 	AppendChildCDATA(Root, TEXT("id"), GetClassDocId(Class));
-	AppendChildCDATA(Root, TEXT("display_name"), FBlueprintEditorUtils::GetFriendlyClassDisplayName(Class).ToString());
 //@CYA EDIT
+	AppendChildCDATA(Root, TEXT("display_name"), GetClassDocName(Class));
 	AppendChildCDATA(Root, TEXT("description"), GetClassDescription(Class));
 
 	FXmlNode* Props = AppendChild(Root, TEXT("properties"));
@@ -355,16 +393,14 @@ bool FNodeDocsGenerator::UpdateIndexDocWithClass(FXmlFile* DocFile, UClass* Clas
 	auto Classes = DocFile->GetRootNode()->FindChildNode(TEXT("classes"));
 	auto ClassElem = AppendChild(Classes, TEXT("class"));
 	AppendChildCDATA(ClassElem, TEXT("id"), ClassId);
-	AppendChildCDATA(ClassElem, TEXT("display_name"), FBlueprintEditorUtils::GetFriendlyClassDisplayName(Class).ToString());
 //@CYA EDIT ClassGroup & Description
+	AppendChildCDATA(ClassElem, TEXT("display_name"), GetClassDocName(Class));
 	TArray<FString> Groups;
 	Class->GetClassGroupNames(Groups);
 	if (Groups.Num() > 0)
-		AppendChildCDATA(ClassElem, TEXT("group"), Groups[0].Replace(TEXT("|"), TEXT(" ")));
+		AppendChildCDATA(ClassElem, TEXT("group"), Groups[0]);//.Replace(TEXT("|"), TEXT(" ")));
 
-	FString ClassToolTip = GetClassDescription(Class);
-	if (ClassToolTip != FBlueprintEditorUtils::GetFriendlyClassDisplayName(Class).ToString())
-		AppendChildCDATA(ClassElem, TEXT("description"), ClassToolTip);
+	AppendChildCDATA(ClassElem, TEXT("description"), GetClassDescription(Class));
 //@CYA END
 	return true;
 }
@@ -376,6 +412,10 @@ bool FNodeDocsGenerator::UpdateClassDocWithNode(FXmlFile* DocFile, UEdGraphNode*
 	auto NodeElem = AppendChild(Nodes, TEXT("node"));
 	AppendChildCDATA(NodeElem, TEXT("id"), NodeId);
 	AppendChildCDATA(NodeElem, TEXT("shorttitle"), Node->GetNodeTitle(ENodeTitleType::ListView).ToString());
+//@CYA EDIT
+	AppendChildCDATA(NodeElem, TEXT("description"), GetNodeDescription(Node));
+//@CYA END
+
 	return true;
 }
 
@@ -399,8 +439,8 @@ bool FNodeDocsGenerator::GenerateNodeDocs(UK2Node* Node, FNodeProcessingState& S
 	
 	AppendChildCDATA(Root, TEXT("docs_name"), DocsTitle);
 	// Since we pull these from the class xml file, the entries are already CDATA wrapped
-	AppendChildRaw(Root, TEXT("class_id"), State.ClassDocXml->GetRootNode()->FindChildNode(TEXT("id"))->GetContent());//GetClassDocId(Class));
-	AppendChildRaw(Root, TEXT("class_name"), State.ClassDocXml->GetRootNode()->FindChildNode(TEXT("display_name"))->GetContent());// FBlueprintEditorUtils::GetFriendlyClassDisplayName(Class).ToString());
+	AppendChildRaw(Root, TEXT("class_id"), State.ClassDocXml->GetRootNode()->FindChildNode(TEXT("id"))->GetContent());
+	AppendChildRaw(Root, TEXT("class_name"), State.ClassDocXml->GetRootNode()->FindChildNode(TEXT("display_name"))->GetContent());
 
 	FString NodeShortTitle = Node->GetNodeTitle(ENodeTitleType::ListView).ToString();
 	AppendChildCDATA(Root, TEXT("shorttitle"), NodeShortTitle.TrimEnd());
@@ -413,13 +453,7 @@ bool FNodeDocsGenerator::GenerateNodeDocs(UK2Node* Node, FNodeProcessingState& S
 	}
 	AppendChildCDATA(Root, TEXT("fulltitle"), NodeFullTitle);
 
-	FString NodeDesc = Node->GetTooltipText().ToString();
-	TargetIdx = NodeDesc.Find(TEXT("Target is "), ESearchCase::CaseSensitive);
-	if(TargetIdx != INDEX_NONE)
-	{
-		NodeDesc = NodeDesc.Left(TargetIdx).TrimEnd();
-	}
-	AppendChildCDATA(Root, TEXT("description"), NodeDesc);
+	AppendChildCDATA(Root, TEXT("description"), GetNodeDescription(Node));
 	AppendChildCDATA(Root, TEXT("imgpath"), State.RelImageBasePath / State.ImageFilename);
 	AppendChildCDATA(Root, TEXT("category"), Node->GetMenuCategory().ToString());
 	

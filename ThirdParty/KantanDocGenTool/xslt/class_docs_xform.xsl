@@ -68,11 +68,14 @@ version="2.0">
 
 	<xsl:template match="node">
 		<tr>
-			<td>
+			<td width="40%">
 				<a>
 					<xsl:attribute name="href">./nodes/<xsl:value-of select="id" />.html</xsl:attribute>
 					<xsl:apply-templates select="shorttitle" />	
 				</a>
+			</td>
+			<td width="60%">
+				<xsl:value-of select="description" />
 			</td>
 		</tr>
 	</xsl:template>
