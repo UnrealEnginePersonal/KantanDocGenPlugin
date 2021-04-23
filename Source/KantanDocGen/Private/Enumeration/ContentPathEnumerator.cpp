@@ -31,7 +31,7 @@ void FContentPathEnumerator::Prepass(FName const& Path)
 	Filter.ClassNames.Add(UBlueprint::StaticClass()->GetFName());
 	
 	// @TODO: Not sure about this, but for some reason was generating docs for 'AnimInstance' itself.
-	//Filter.RecursiveClassesExclusionSet.Add(UAnimBlueprint::StaticClass()->GetFName());
+	Filter.RecursiveClassesExclusionSet.Add(UAnimBlueprint::StaticClass()->GetFName());
 
 	AssetRegistry.GetAssetsByPath(Path, AssetList, true);
 	AssetRegistry.RunAssetsThroughFilter(AssetList, Filter);
