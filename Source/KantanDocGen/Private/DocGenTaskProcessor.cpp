@@ -153,8 +153,8 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr< FDocGenTask > InTask)
 			return nullptr;
 		}
 
-		// handle simple class doc
-		if(Current->CurrentSpawners.IsEmpty())
+		// Document classes without spawner using a "nullptr" spawner (handled gracefully in IsSpawnerDocumentable)
+		if (Current->CurrentSpawners.IsEmpty())
 			return Current->DocGen->GT_InitializeForSpawner(nullptr, Current->SourceObject.Get(), OutState);
 
 		// Try to grab the next spawner in the cached list

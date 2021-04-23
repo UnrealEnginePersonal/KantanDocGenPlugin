@@ -30,6 +30,7 @@ version="2.0">
 		<a class="navbar_style">&gt;</a>
 		<a class="navbar_style"><xsl:value-of select="display_name" /></a>
 		<h1 class="title_style"><xsl:value-of select="display_name" /></h1>
+		<div class="param_type"><xsl:value-of select="sourcepath" /></div>
 		<p><xsl:value-of select="description" /></p>
 		
 		<xsl:apply-templates select="properties" />

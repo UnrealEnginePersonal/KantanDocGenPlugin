@@ -34,7 +34,8 @@ version="2.0">
 		<table>
 			<tbody>
 				<xsl:apply-templates select="class">
-					<xsl:sort select="display_name"/>
+					<xsl:sort select="type" order="descending"/>
+					<xsl:sort select="display_name"/>          
 				</xsl:apply-templates>
 			</tbody>
 		</table>
@@ -42,13 +43,20 @@ version="2.0">
 
 	<xsl:template match="class">
 		<tr>
-			<td width="30%">
+      <td width="5%">
+        <div class="param_name title_style">
+          <xsl:apply-templates select="type" />
+        </div>
+      </td>
+			<td width="25%">
 				<a>
 					<xsl:attribute name="href">./<xsl:value-of select="id" />/<xsl:value-of select="id" />.html</xsl:attribute>
 					<xsl:apply-templates select="display_name" />
 				</a>
-				<div class="param_type"><xsl:apply-templates select="group" /></div>
-			</td>
+				<div class="param_type">
+          <xsl:apply-templates select="group" />
+        </div>
+			</td>      
 			<td width="70%">
 				<xsl:apply-templates select="description" />
 			</td>
