@@ -591,6 +591,8 @@ UClass* FNodeDocsGenerator::MapToAssociatedClass(UK2Node* NodeInst, UObject* Sou
 
 bool FNodeDocsGenerator::IsSpawnerDocumentable(UBlueprintNodeSpawner* Spawner, bool bIsBlueprint)
 {
+	if (nullptr == Spawner)
+		return false;
 	// Spawners of or deriving from the following classes will be excluded
 	static const TSubclassOf< UBlueprintNodeSpawner > ExcludedSpawnerClasses[] = {
 		UBlueprintVariableNodeSpawner::StaticClass(),

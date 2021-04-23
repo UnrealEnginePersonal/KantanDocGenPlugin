@@ -123,26 +123,21 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr< FDocGenTask > InTask)
 				continue;
 			}
 
-			// Cache list of spawners for this object
+			// add this Object as we want to document everything even classes without BP action
+			Current->SourceObject = Obj;
 			auto& BPActionMap = FBlueprintActionDatabase::Get().GetAllActions();
 			if(auto ActionList = BPActionMap.Find(Obj))
 			{
-				if(ActionList->Num() == 0)
-				{
-					continue;
-				}
-
-				Current->SourceObject = Obj;
+				// Cache list of spawners for this object
 				for(auto Spawner : *ActionList)
 				{
 					// Add to queue as weak ptr
 					check(Current->CurrentSpawners.Enqueue(Spawner));
 				}
-
-				// Done
-				Current->Processed.Add(Obj);
-				return true;
 			}
+			// Done
+			Current->Processed.Add(Obj);
+			return true;
 		}
 
 		// This enumerator is finished
@@ -157,6 +152,10 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr< FDocGenTask > InTask)
 			UE_LOG(LogKantanDocGen, Warning, TEXT("Object being enumerated expired!"));
 			return nullptr;
 		}
+
+		// handle simple class doc
+		if(Current->CurrentSpawners.IsEmpty())
+			return Current->DocGen->GT_InitializeForSpawner(nullptr, Current->SourceObject.Get(), OutState);
 
 		// Try to grab the next spawner in the cached list
 		TWeakObjectPtr< UBlueprintNodeSpawner > Spawner;
