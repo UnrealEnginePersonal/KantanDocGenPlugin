@@ -9,8 +9,11 @@
 					<xsl:value-of select="/root/display_name"/>
 				</title>
 				<link rel="stylesheet" type="text/css" href="./css/bpdoc.css"/>
+				<script src="./scripts/Filtering.js">
+					<xsl:comment>Empty comment to keep the closing tag</xsl:comment>
+				</script>
 			</head>
-			<body>
+			<body onload="onPageLoaded();">
 				<div id="content_container">
 					<xsl:apply-templates/>
 				</div>
@@ -29,6 +32,12 @@
 	</xsl:template>
 	<xsl:template match="classes">
 		<h2 class="title_style">Classes</h2>
+		<hr/>
+		<label for="groupfilters">Filter by category:</label>
+		<select name="groupfilters" id="groupfilters" onchange="onFilterChanged()">
+			<xsl:comment>Empty comment to keep the closing tag</xsl:comment>
+		</select>
+		<hr/>
 		<table>
 			<tbody>
 				<xsl:apply-templates select="class">
