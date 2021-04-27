@@ -58,7 +58,7 @@ protected:
 	void CleanUp();
 	TSharedPtr< FXmlFile > InitIndexXml(FString const& IndexTitle);
 	TSharedPtr< FXmlFile > InitClassDocXml(UClass* Class);
-	bool UpdateIndexDocWithClass(FXmlFile* DocFile, UClass* Class);
+	bool UpdateIndexDocWithClass(FXmlFile* DocFile, UClass* Class, UObject* SourceObject);
 	bool UpdateClassDocWithNode(FXmlFile* DocFile, UEdGraphNode* Node);
 	bool SaveIndexXml(FString const& OutDir);
 	bool SaveClassDocXml(FString const& OutDir);

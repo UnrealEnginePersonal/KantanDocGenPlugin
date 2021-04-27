@@ -100,7 +100,7 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 		// New class xml file needs adding
 		ClassDocsMap.Add(AssociatedClass, InitClassDocXml(AssociatedClass));
 		// Also update the index xml
-		UpdateIndexDocWithClass(IndexXml.Get(), AssociatedClass);
+		UpdateIndexDocWithClass(IndexXml.Get(), AssociatedClass, SourceObject);
 	}
 
 	if (bIsDocumentable)
@@ -371,8 +371,16 @@ TSharedPtr< FXmlFile > FNodeDocsGenerator::InitClassDocXml(UClass* Class)
 	}
 	AppendChildCDATA(Root, TEXT("sourcepath"), Path);
 
-	FXmlNode* Props = AppendChild(Root, TEXT("properties"));
+	const UClass* Parent = Class->GetSuperClass();
+	FString ClassTreeStr = *GetClassDocName(Class);
+	while (nullptr != Parent)
+	{
+		ClassTreeStr = FString::Printf(TEXT("%s > %s"), *GetClassDocName(Parent), *ClassTreeStr);
+		Parent = Parent->GetSuperClass();
+	}
+	AppendChildCDATA(Root, TEXT("classTree"), ClassTreeStr);
 
+	FXmlNode* Props = AppendChild(Root, TEXT("properties"));
 	for (TFieldIterator<FProperty> It(Class, EFieldIteratorFlags::ExcludeSuper); It; ++It)
 	{
 		if ((It->PropertyFlags & (CPF_BlueprintVisible | CPF_Edit)) != 0)
@@ -391,18 +399,36 @@ TSharedPtr< FXmlFile > FNodeDocsGenerator::InitClassDocXml(UClass* Class)
 	return File;
 }
 
-bool FNodeDocsGenerator::UpdateIndexDocWithClass(FXmlFile* DocFile, UClass* Class)
+bool FNodeDocsGenerator::UpdateIndexDocWithClass(FXmlFile* DocFile, UClass* Class, UObject* SourceObject)
 {
+	check(DocFile);
+	check(Class);
+	check(SourceObject);
 	auto ClassId = GetClassDocId(Class);
 	auto Classes = DocFile->GetRootNode()->FindChildNode(TEXT("classes"));
 	auto ClassElem = AppendChild(Classes, TEXT("class"));
 	AppendChildCDATA(ClassElem, TEXT("id"), ClassId);
 	AppendChildCDATA(ClassElem, TEXT("display_name"), GetClassDocName(Class));
-	TArray<FString> Groups;
-	Class->GetClassGroupNames(Groups);
-	if (Groups.Num() > 0)
-		AppendChildCDATA(ClassElem, TEXT("group"), Groups[0]);
-	AppendChildCDATA(ClassElem, TEXT("type"), Class->HasAnyClassFlags(CLASS_Native) ? "C++" : "Blueprint");
+	const bool bIsNative = Class->HasAnyClassFlags(CLASS_Native);
+	if (bIsNative)
+	{
+		TArray<FString> Groups;
+		Class->GetClassGroupNames(Groups);
+		if (Groups.Num() > 0)
+			AppendChildCDATA(ClassElem, TEXT("group"), Groups[0]);
+	}
+	else 
+	{
+		UBlueprint* BP = Cast<UBlueprint>(SourceObject);
+		if (nullptr != BP)
+		{
+			if (!BP->BlueprintCategory.IsEmpty())
+				AppendChildCDATA(ClassElem, TEXT("group"), BP->BlueprintCategory);
+			else if (!BP->BlueprintNamespace.IsEmpty())
+				AppendChildCDATA(ClassElem, TEXT("group"), BP->BlueprintNamespace);
+		}
+	}
+	AppendChildCDATA(ClassElem, TEXT("type"), bIsNative ? "C++" : "Blueprint");
 	AppendChildCDATA(ClassElem, TEXT("description"), GetClassDescription(Class));
 	return true;
 }
