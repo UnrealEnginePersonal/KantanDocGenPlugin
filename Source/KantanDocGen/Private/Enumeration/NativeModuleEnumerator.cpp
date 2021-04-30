@@ -9,6 +9,8 @@
 #include "UObject/UnrealType.h"
 #include "UObject/Package.h"
 #include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "EdGraphSchema_K2.h"
 
 
 FNativeModuleEnumerator::FNativeModuleEnumerator(
@@ -47,7 +49,7 @@ void FNativeModuleEnumerator::Prepass(FName const& ModuleName)
 	TSet< UObject* > Processed;
 
 	// Functor to invoke on every object found in the package
-	TFunction< void(UObject*) > ObjectEnumFtr = [&](UObject* Obj)
+	TFunction< bool(UObject*) > ObjectEnumFtr = [&](UObject* Obj)
 	{
 		// The BP action database appears to be keyed either on native UClass objects, or, in the
 		// case of blueprints, on the Blueprint object itself, as opposed to the generated class.
@@ -72,10 +74,33 @@ void FNativeModuleEnumerator::Prepass(FName const& ModuleName)
 
 			Processed.Add(ObjectToProcess);
 		}
+		return true;
 	};
 
 	// Enumerate all objects in the package
-	ForEachObjectWithOuter(Package, ObjectEnumFtr, true /* Include nested */);
+	ForEachObjectWithPackage(Package, ObjectEnumFtr, true /* Include nested */);
+
+	// List native enums
+	for (TObjectIterator<UEnum> Iter; Iter; ++Iter)
+	{
+		if (Iter->GetPackage() == Package)
+		{
+			UE_LOG(LogKantanDocGen, Log, TEXT("Enumerating enum '%s' in package '%s'"), *Iter->GetName(), *PkgName);
+
+			ObjectList.Add(*Iter);
+		}
+	}
+
+	// List native structs
+	for (TObjectIterator<UScriptStruct> Iter; Iter; ++Iter)
+	{
+		if (Iter->GetPackage() == Package && UEdGraphSchema_K2::IsAllowableBlueprintVariableType(*Iter, false))
+		{
+			UE_LOG(LogKantanDocGen, Log, TEXT("Enumerating struct '%s' in package '%s'"), *Iter->GetName(), *PkgName);
+
+			ObjectList.Add(*Iter);
+		}
+	}
 }
 
 UObject* FNativeModuleEnumerator::GetNext()

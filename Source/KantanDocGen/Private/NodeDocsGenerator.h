@@ -45,6 +45,7 @@ public:
 public:
 	/** Callable only from game thread */
 	bool GT_Init(FString const& InDocsTitle, FString const& InOutputDir, UClass* BlueprintContextClass = AActor::StaticClass());
+	UK2Node* GT_DocumentSimpleObject(UObject* SourceObject, FNodeProcessingState& OutState);
 	UK2Node* GT_InitializeForSpawner(UBlueprintNodeSpawner* Spawner, UObject* SourceObject, FNodeProcessingState& OutState);
 	bool GT_Finalize(FString OutputPath);
 	/**/
@@ -59,6 +60,8 @@ protected:
 	TSharedPtr< FXmlFile > InitIndexXml(FString const& IndexTitle);
 	TSharedPtr< FXmlFile > InitClassDocXml(UClass* Class);
 	bool UpdateIndexDocWithClass(FXmlFile* DocFile, UClass* Class, UObject* SourceObject);
+	bool UpdateIndexDocWithEnum(FXmlFile* DocFile, UEnum* Enum);
+	bool UpdateIndexDocWithStruct(FXmlFile* DocFile, UScriptStruct* Struct);
 	bool UpdateClassDocWithNode(FXmlFile* DocFile, UEdGraphNode* Node);
 	bool SaveIndexXml(FString const& OutDir);
 	bool SaveClassDocXml(FString const& OutDir);

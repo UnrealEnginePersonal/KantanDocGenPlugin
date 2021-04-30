@@ -29,6 +29,8 @@
 			<xsl:value-of select="display_name"/>
 		</h1>
 		<xsl:apply-templates select="classes"/>
+		<xsl:apply-templates select="structs"/>
+		<xsl:apply-templates select="enums"/>
 	</xsl:template>
 	<xsl:template match="classes">
 		<h2 class="title_style">Classes</h2>
@@ -65,6 +67,92 @@
 			</td>
 			<td width="70%">
 				<xsl:apply-templates select="description"/>
+			</td>
+		</tr>
+	</xsl:template>
+	
+	<xsl:template match="structs">
+		<hr/>
+		<h2 class="title_style">Structs</h2>
+		<hr/>
+		<table>
+			<tbody>
+				<xsl:apply-templates select="struct">
+					<xsl:sort select="display_name"/>
+				</xsl:apply-templates>
+			</tbody>
+		</table>
+	</xsl:template>
+	<xsl:template match="struct">
+		<tr>
+			<td width="25%">
+				<div class="param_name title_style">
+					<xsl:value-of select="display_name"/>
+				</div>
+			</td>
+			<td width="25%">
+				<div>
+					<xsl:value-of select="description"/>
+				</div>
+			</td>
+			<td width="50%">
+				<xsl:apply-templates select="properties"/>
+			</td>
+		</tr>
+	</xsl:template>
+	
+	<xsl:template match="properties">
+		<div class="param_name title_style">Properties:</div>
+		<table>
+			<tbody>
+				<xsl:apply-templates select="property">
+					<xsl:sort select="display_name"/>
+				</xsl:apply-templates>
+			</tbody>
+		</table>
+	</xsl:template>
+	<xsl:template match="property">
+		<tr>
+			<td width="20%">
+				<xsl:value-of select="type"/>
+			</td>
+			<td width="20%">
+				<xsl:value-of select="display_name"/>
+			</td>
+			<td width="60%">
+				<xsl:value-of select="description"/>
+			</td>
+		</tr>
+	</xsl:template>	
+		
+	<xsl:template match="enums">
+		<hr/>
+		<h2 class="title_style">Enums</h2>
+		<hr/>
+		<table>
+			<tbody>
+				<xsl:apply-templates select="enum">
+					<xsl:sort select="display_name"/>
+				</xsl:apply-templates>
+			</tbody>
+		</table>
+	</xsl:template>
+		<xsl:template match="enum">
+		<tr>
+			<td width="25%">
+				<div class="param_name title_style">
+					<xsl:value-of select="display_name"/>
+				</div>
+			</td>
+			<td width="50%">
+				<div>
+					<xsl:value-of select="description"/>
+				</div>
+			</td>
+						<td width="25%">
+				<pre>
+					<xsl:value-of select="values"/>
+				</pre>
 			</td>
 		</tr>
 	</xsl:template>

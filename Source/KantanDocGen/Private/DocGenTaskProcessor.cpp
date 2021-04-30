@@ -153,9 +153,9 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr< FDocGenTask > InTask)
 			return nullptr;
 		}
 
-		// Document classes without spawner using a "nullptr" spawner (handled gracefully in IsSpawnerDocumentable)
+		// Document classes without spawner
 		if (Current->CurrentSpawners.IsEmpty())
-			return Current->DocGen->GT_InitializeForSpawner(nullptr, Current->SourceObject.Get(), OutState);
+			return Current->DocGen->GT_DocumentSimpleObject(Current->SourceObject.Get(), OutState);
 
 		// Try to grab the next spawner in the cached list
 		TWeakObjectPtr< UBlueprintNodeSpawner > Spawner;

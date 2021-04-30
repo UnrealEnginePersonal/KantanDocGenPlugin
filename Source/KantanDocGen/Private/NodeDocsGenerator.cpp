@@ -74,6 +74,23 @@ bool FNodeDocsGenerator::GT_Init(FString const& InDocsTitle, FString const& InOu
 	return true;
 }
 
+UK2Node* FNodeDocsGenerator::GT_DocumentSimpleObject(UObject* SourceObject, FNodeProcessingState& OutState)
+{
+	if (UEnum* Enum = Cast<UEnum>(SourceObject))
+	{
+		UpdateIndexDocWithEnum(IndexXml.Get(), Enum);
+		return nullptr;
+	}
+	else if (UScriptStruct* Struct = Cast<UScriptStruct>(SourceObject))
+	{
+		UpdateIndexDocWithStruct(IndexXml.Get(), Struct);
+		return nullptr;
+	}
+	
+	//InitializeForSpawner supports "nullptr" spawner for simple classes (handled gracefully in IsSpawnerDocumentable)
+	return GT_InitializeForSpawner(nullptr, SourceObject, OutState);
+}
+
 UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spawner, UObject* SourceObject, FNodeProcessingState& OutState)
 {
 	UK2Node* K2NodeInst = nullptr;
@@ -299,6 +316,8 @@ TSharedPtr< FXmlFile > FNodeDocsGenerator::InitIndexXml(FString const& IndexTitl
 
 	AppendChildCDATA(Root, TEXT("display_name"), IndexTitle);
 	AppendChild(Root, TEXT("classes"));
+	AppendChild(Root, TEXT("structs"));
+	AppendChild(Root, TEXT("enums"));
 
 	return File;
 }
@@ -430,6 +449,55 @@ bool FNodeDocsGenerator::UpdateIndexDocWithClass(FXmlFile* DocFile, UClass* Clas
 	}
 	AppendChildCDATA(ClassElem, TEXT("type"), bIsNative ? "C++" : "Blueprint");
 	AppendChildCDATA(ClassElem, TEXT("description"), GetClassDescription(Class));
+	return true;
+}
+
+bool FNodeDocsGenerator::UpdateIndexDocWithEnum(FXmlFile* DocFile, UEnum* Enum)
+{
+	check(Enum);
+	auto Classes = DocFile->GetRootNode()->FindChildNode(TEXT("enums"));
+	auto ClassElem = AppendChild(Classes, TEXT("enum"));
+	AppendChildCDATA(ClassElem, TEXT("display_name"), Enum->CppType);
+	AppendChildCDATA(ClassElem, TEXT("description"), Enum->UField::GetToolTipText(false).ToString());
+
+	FString ValuesStr;
+	for (int32 Idx = 0; Idx < Enum->NumEnums(); ++Idx)
+	{
+		if (Idx != 0)
+			ValuesStr += "\n";
+		FString Name = Enum->GetNameStringByIndex(Idx);
+		ValuesStr += Name;
+		FString DisplayName = Enum->GetDisplayNameTextByIndex(Idx).ToString();
+		if (Name != DisplayName.Replace(TEXT(" "), TEXT("")))
+			ValuesStr += " (" + DisplayName + ")";
+	}
+	AppendChildCDATA(ClassElem, TEXT("values"), ValuesStr);
+	return true;
+}
+
+bool FNodeDocsGenerator::UpdateIndexDocWithStruct(FXmlFile* DocFile, UScriptStruct* Struct)
+{
+	check(Struct);
+	auto Classes = DocFile->GetRootNode()->FindChildNode(TEXT("structs"));
+	auto ClassElem = AppendChild(Classes, TEXT("struct"));
+
+	AppendChildCDATA(ClassElem, TEXT("display_name"), Struct->GetDisplayNameText().ToString());
+	AppendChildCDATA(ClassElem, TEXT("description"), Struct->GetToolTipText(false).ToString());
+
+	FXmlNode* Props = AppendChild(ClassElem, TEXT("properties"));
+	for (TFieldIterator<FProperty> It(Struct, EFieldIteratorFlags::ExcludeSuper); It; ++It)
+	{
+		if ((It->PropertyFlags & (CPF_BlueprintVisible | CPF_Edit)) != 0)
+		{
+			FXmlNode* Prop = AppendChild(Props, TEXT("property"));
+			AppendChildCDATA(Prop, TEXT("type"), It->GetCPPType());
+			FString DisplayName = It->GetDisplayNameText().ToString();
+			AppendChildCDATA(Prop, TEXT("display_name"), DisplayName.Replace(TEXT(" "), TEXT("")));
+			FString ToolTip = It->GetToolTipText().ToString();
+			if (ToolTip != DisplayName)
+				AppendChildCDATA(Prop, TEXT("description"), ToolTip);
+		}
+	}
 	return true;
 }
 
