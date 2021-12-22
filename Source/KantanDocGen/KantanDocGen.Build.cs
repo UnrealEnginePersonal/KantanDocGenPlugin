@@ -18,7 +18,8 @@ public class KantanDocGen : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(
             new string[] {
-                "Core",
+				"AnimGraph",
+				"Core",
                 "CoreUObject",
                 "Engine",
                 "InputCore",

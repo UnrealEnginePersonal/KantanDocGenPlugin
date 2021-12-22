@@ -31,6 +31,7 @@
 #include "ThreadingHelpers.h"
 #include "Stats/StatsMisc.h"
 #include "Runtime/ImageWriteQueue/Public/ImageWriteTask.h"
+#include "AnimGraphNode_Base.h"
 
 FNodeDocsGenerator::~FNodeDocsGenerator()
 {
@@ -94,7 +95,11 @@ UK2Node* FNodeDocsGenerator::GT_DocumentSimpleObject(UObject* SourceObject, FNod
 UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spawner, UObject* SourceObject, FNodeProcessingState& OutState)
 {
 	UK2Node* K2NodeInst = nullptr;
-	bool bIsDocumentable = IsSpawnerDocumentable(Spawner, SourceObject->IsA< UBlueprint >());
+	bool bIsDocumentable = IsSpawnerDocumentable(Spawner, SourceObject->IsA<UBlueprint>());
+
+	// fix crash in UE5 while trying to spawn an AnimGraphNode into an Actor Graph
+	UClass* ObjectAsClass = Cast<UClass>(SourceObject);
+	bIsDocumentable &= ObjectAsClass == nullptr || !ObjectAsClass->GetDefaultObject()->IsA<UAnimGraphNode_Base>();
 	if (bIsDocumentable)
 	{
 		// Spawn an instance into the graph
