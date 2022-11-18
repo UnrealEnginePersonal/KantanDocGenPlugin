@@ -38,7 +38,7 @@ void FDocGenTaskProcessor::QueueTask(FKantanDocGenSettings const& Settings)
 	NewTask->Settings = Settings;
 
 	FNotificationInfo Info(LOCTEXT("DocGenWaiting", "Doc gen waiting"));
-	Info.Image = nullptr;//FEditorStyle::GetBrush(TEXT("LevelEditor.RecompileGameCode"));
+	Info.Image = nullptr;//FAppStyle::GetBrush(TEXT("LevelEditor.RecompileGameCode"));
 	Info.FadeInDuration = 0.2f;
 	Info.ExpireDuration = 5.0f;
 	Info.FadeOutDuration = 1.0f;

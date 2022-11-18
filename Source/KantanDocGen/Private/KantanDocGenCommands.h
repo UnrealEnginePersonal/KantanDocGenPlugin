@@ -7,8 +7,6 @@
 #pragma once
 
 #include "Framework/Commands/Commands.h"
-#include "Editor/EditorStyle/Public/EditorStyleSet.h"
-
 
 class FKantanDocGenCommands : public TCommands< FKantanDocGenCommands >
 {
@@ -18,7 +16,7 @@ public:
 		"KantanDocGen", // Context name for fast lookup
 		NSLOCTEXT("Contexts", "KantanDocGen", "Kantan Doc Gen"), // Localized context name for displaying
 		NAME_None, // Parent
-		FEditorStyle::GetStyleSetName() // Icon Style Set
+		FAppStyle::GetAppStyleSetName() // Icon Style Set
 	)
 	{
 	}

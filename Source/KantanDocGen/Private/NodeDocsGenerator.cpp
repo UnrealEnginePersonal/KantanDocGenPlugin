@@ -30,7 +30,9 @@
 #include "TextureResource.h"
 #include "ThreadingHelpers.h"
 #include "Stats/StatsMisc.h"
-#include "Runtime/ImageWriteQueue/Public/ImageWriteTask.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
+#include "Misc/FileHelper.h"
 #include "AnimGraphNode_Base.h"
 
 FNodeDocsGenerator::~FNodeDocsGenerator()
@@ -172,19 +174,11 @@ bool FNodeDocsGenerator::GenerateNodeImage(UEdGraphNode* Node, FNodeProcessingSt
 {
 	SCOPE_SECONDS_COUNTER(GenerateNodeImageTime);
 
-	const FVector2D DrawSize(1024.0f, 1024.0f);
-
-	bool bSuccess = false;
-
 	AdjustNodeForSnapshot(Node);
 
 	FString NodeName = GetNodeDocId(Node);
 
-	FIntRect Rect;
-
-	TUniquePtr<TImagePixelData<FColor>> PixelData;
-
-	bSuccess = DocGenThreads::RunOnGameThreadRetVal([this, Node, DrawSize, &Rect, &PixelData]
+	bool bSuccess = DocGenThreads::RunOnGameThreadRetVal([&]
 	{
 		auto NodeWidget = FNodeFactory::CreateNodeWidget(Node);
 		NodeWidget->SetOwner(GraphPanel.ToSharedRef());
@@ -192,56 +186,50 @@ bool FNodeDocsGenerator::GenerateNodeImage(UEdGraphNode* Node, FNodeProcessingSt
 		const bool bUseGammaCorrection = false;
 		FWidgetRenderer Renderer(bUseGammaCorrection);
 		Renderer.SetIsPrepassNeeded(true);
-		auto RenderTarget = Renderer.DrawWidget(NodeWidget.ToSharedRef(), DrawSize);
+		auto RenderTarget = Renderer.DrawWidget(NodeWidget.ToSharedRef(), FVector2D(1024.0f, 1024.0f));
 
 		auto Desired = NodeWidget->GetDesiredSize();
 	
 		FTextureRenderTargetResource* RTResource = RenderTarget->GameThread_GetRenderTargetResource();
-		Rect = FIntRect(0, 0, (int32)Desired.X, (int32)Desired.Y);
+		FIntRect Rect = FIntRect(0, 0, (int32)Desired.X, (int32)Desired.Y);
 		FReadSurfaceDataFlags ReadPixelFlags(RCM_UNorm);
 		ReadPixelFlags.SetLinearToGamma(true); // @TODO: is this gamma correction, or something else?
 
-		PixelData = MakeUnique<TImagePixelData<FColor>>(FIntPoint((int32)Desired.X, (int32)Desired.Y));
-		PixelData->Pixels.SetNumUninitialized(Desired.X * Desired.Y);
-
-		if(RTResource->ReadPixelsPtr(PixelData->Pixels.GetData(), ReadPixelFlags, Rect) == false)
+		TArray<FColor> Pixels;
+		if (RTResource->ReadPixels(Pixels, ReadPixelFlags, Rect) == false)
 		{
 			UE_LOG(LogKantanDocGen, Warning, TEXT("Failed to read pixels for node image."));
 			return false;
 		}
 
+		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+
+		TArray<uint8> CompressedImage;
+
+		const int32 X = (int32)Desired.X;
+		const int32 Y = (int32)Desired.Y;
+		if (!ImageWrapper->SetRaw(Pixels.GetData(), X * Y * sizeof(FColor), X, Y, ERGBFormat::BGRA, 8))
+		{
+			UE_LOG(LogKantanDocGen, Error, TEXT("Failed to set raw pixels for node %s."), *NodeName);
+			return false;
+		}
+
+		CompressedImage = ImageWrapper->GetCompressed(90);
+
+		State.RelImageBasePath = TEXT("../img");
+		FString ImageBasePath = State.ClassDocsPath / TEXT("img");// State.RelImageBasePath;
+		FString ImgFilename = FString::Printf(TEXT("nd_img_%s.png"), *NodeName);
+		FString ScreenshotSaveName = ImageBasePath / ImgFilename;
+
+		if (!FFileHelper::SaveArrayToFile(CompressedImage, *ScreenshotSaveName))
+		{
+			UE_LOG(LogKantanDocGen, Error, TEXT("Failed to save %s."), *ScreenshotSaveName);
+			return false;
+		}
+		State.ImageFilename = ImgFilename;
 		return true;
 	});
-
-	if(!bSuccess)
-	{
-		return false;
-	}
-
-	State.RelImageBasePath = TEXT("../img");
-	FString ImageBasePath = State.ClassDocsPath / TEXT("img");// State.RelImageBasePath;
-	FString ImgFilename = FString::Printf(TEXT("nd_img_%s.png"), *NodeName);
-	FString ScreenshotSaveName = ImageBasePath / ImgFilename;
-
-	TUniquePtr<FImageWriteTask> ImageTask = MakeUnique<FImageWriteTask>();
-	ImageTask->PixelData = MoveTemp(PixelData);
-	ImageTask->Filename = ScreenshotSaveName;
-	ImageTask->Format = EImageFormat::PNG;
-	ImageTask->CompressionQuality = (int32)EImageCompressionQuality::Default;
-	ImageTask->bOverwriteFile = true;
-	ImageTask->PixelPreProcessors.Add(TAsyncAlphaWrite<FColor>(255));
-	
-	if(ImageTask->RunTask())
-	{
-		// Success!
-		bSuccess = true;
-		State.ImageFilename = ImgFilename;
-	}
-	else
-	{
-		UE_LOG(LogKantanDocGen, Warning, TEXT("Failed to save screenshot image for node: %s"), *NodeName);
-	}
-
 	return bSuccess;
 }
 

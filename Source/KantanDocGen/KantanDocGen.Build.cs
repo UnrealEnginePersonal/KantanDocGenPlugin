@@ -5,7 +5,6 @@
 // Copyright (C) 2016-2017 Cameron Angus. All Rights Reserved.
 
 using UnrealBuildTool;
-using System.IO;
 
 public class KantanDocGen : ModuleRules
 {
@@ -13,8 +12,6 @@ public class KantanDocGen : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		bEnforceIWYU = true;
-
-		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Private"));
 
 		PublicDependencyModuleNames.AddRange(
             new string[] {

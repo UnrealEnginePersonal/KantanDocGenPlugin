@@ -7,8 +7,7 @@
 #pragma once
 
 #include "ISourceObjectEnumerator.h"
-#include "AssetData.h"
-
+#include "AssetRegistry/AssetData.h"
 
 class FContentPathEnumerator: public ISourceObjectEnumerator
 {
