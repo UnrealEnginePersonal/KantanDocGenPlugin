@@ -28,37 +28,35 @@ DEFINE_LOG_CATEGORY(LogKantanDocGen);
 
 void FKantanDocGenModule::StartupModule()
 {
+	// Create command list
+	UICommands = MakeShared< FUICommandList >();
+
+	FKantanDocGenCommands::Register();
+
+	// Map commands
+	FUIAction ShowDocGenUI_UIAction(
+		FExecuteAction::CreateRaw(this, &FKantanDocGenModule::ShowDocGenUI),
+		FCanExecuteAction::CreateLambda([] { return true; })
+	);
+
+	auto CmdInfo = FKantanDocGenCommands::Get().ShowDocGenUI;
+	UICommands->MapAction(CmdInfo, ShowDocGenUI_UIAction);
+
+	// Setup menu extension
+	auto AddMenuExtension = [](FMenuBuilder& MenuBuilder)
 	{
-		// Create command list
-		UICommands = MakeShared< FUICommandList >();
+		MenuBuilder.AddMenuEntry(FKantanDocGenCommands::Get().ShowDocGenUI);
+	};
 
-		FKantanDocGenCommands::Register();
-
-		// Map commands
-		FUIAction ShowDocGenUI_UIAction(
-			FExecuteAction::CreateRaw(this, &FKantanDocGenModule::ShowDocGenUI),
-			FCanExecuteAction::CreateLambda([] { return true; })
-		);
-
-		auto CmdInfo = FKantanDocGenCommands::Get().ShowDocGenUI;
-		UICommands->MapAction(CmdInfo, ShowDocGenUI_UIAction);
-
-		// Setup menu extension
-		auto AddMenuExtension = [](FMenuBuilder& MenuBuilder)
-		{
-			MenuBuilder.AddMenuEntry(FKantanDocGenCommands::Get().ShowDocGenUI);
-		};
-
-		auto& LevelEditorModule = FModuleManager::LoadModuleChecked< FLevelEditorModule >("LevelEditor");
-		TSharedRef< FExtender > MenuExtender(new FExtender());
-		MenuExtender->AddMenuExtension(
-			TEXT("FileProject"),
-			EExtensionHook::After,
-			UICommands.ToSharedRef(),
-			FMenuExtensionDelegate::CreateLambda(AddMenuExtension)
-		);
-		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MenuExtender);
-	}
+	auto& LevelEditorModule = FModuleManager::LoadModuleChecked< FLevelEditorModule >("LevelEditor");
+	TSharedRef< FExtender > MenuExtender(new FExtender());
+	MenuExtender->AddMenuExtension(
+		TEXT("FileProject"),
+		EExtensionHook::After,
+		UICommands.ToSharedRef(),
+		FMenuExtensionDelegate::CreateLambda(AddMenuExtension)
+	);
+	LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MenuExtender);
 }
 
 void FKantanDocGenModule::ShutdownModule()
@@ -131,8 +129,4 @@ void FKantanDocGenModule::ShowDocGenUI()
 		FSlateApplication::Get().AddWindow(Window.ToSharedRef());
 	}
 }
-
-
 #undef LOCTEXT_NAMESPACE
-
-

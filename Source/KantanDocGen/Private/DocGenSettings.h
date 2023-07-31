@@ -14,6 +14,14 @@
 #include "Misc/App.h"
 #include "DocGenSettings.generated.h"
 
+UENUM()
+enum class EGenMethod : uint8
+{
+	Manual,
+	Project,
+	Plugins,
+	ProjectAndPlugins
+};
 
 USTRUCT()
 struct FKantanDocGenSettings
@@ -21,31 +29,27 @@ struct FKantanDocGenSettings
 	GENERATED_BODY()
 
 public:
+	/** Generation method */
 	UPROPERTY(EditAnywhere, Category = "Documentation")
+	EGenMethod GenerationMethod = EGenMethod::Manual;
+
+	/** Title of the generated documentation (also used for output dir : "OutputDirectory/DocumentationTitle/<doc>" */
+	UPROPERTY(EditAnywhere, Category = "Documentation", Meta = (EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
 	FString DocumentationTitle;
-		
+
 	/** List of C++ modules in which to search for blueprint-exposed classes to document. */
-	UPROPERTY(EditAnywhere, Category = "Class Search", Meta = (Tooltip = "Raw module names (Do not prefix with '/Script')."))
-	TArray< FName > NativeModules;
+	UPROPERTY(EditAnywhere, Category = "Class Search", Meta = (Tooltip = "Raw module names (Do not prefix with '/Script').", EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
+	TArray<FName> NativeModules;
 
 	/** List of paths in which to search for blueprints to document. */
-	UPROPERTY(EditAnywhere, Category = "Class Search", Meta = (ContentDir))//, Meta = (Tooltip = "Path to content subfolder, e.g. '/Game/MyFolder' or '/PluginName/MyFolder'."))
-	//TArray< FName > ContentPaths;
-	TArray< FDirectoryPath > ContentPaths;
-
-	/** Names of specific classes/blueprints to document. */
-	UPROPERTY()//EditAnywhere, Category = "Class Search")
-	TArray< FName > SpecificClasses;
-
-	/** Names of specific classes/blueprints to exclude. */
-	UPROPERTY()//EditAnywhere, Category = "Class Search")
-	TArray< FName > ExcludedClasses;
+	UPROPERTY(EditAnywhere, Category = "Class Search", Meta = (ContentDir, EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
+	TArray<FDirectoryPath> ContentPaths;
 
 	UPROPERTY(EditAnywhere, Category = "Output")
 	FDirectoryPath OutputDirectory;
 
 	UPROPERTY(EditAnywhere, Category = "Class Search", AdvancedDisplay)
-	TSubclassOf< UObject > BlueprintContextClass;
+	TSubclassOf<UObject> BlueprintContextClass;
 
 	UPROPERTY(EditAnywhere, Category = "Output")
 	bool bCleanOutputDirectory;
@@ -59,10 +63,7 @@ public:
 
 	bool HasAnySources() const
 	{
-		return NativeModules.Num() > 0
-			|| ContentPaths.Num() > 0
-			|| SpecificClasses.Num() > 0
-			;
+		return GenerationMethod != EGenMethod::Manual || NativeModules.Num() > 0 || ContentPaths.Num() > 0;
 	}
 };
 

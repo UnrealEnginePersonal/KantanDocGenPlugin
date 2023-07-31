@@ -11,7 +11,7 @@ public class KantanDocGen : ModuleRules
 	public KantanDocGen(ReadOnlyTargetRules Target): base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-		bEnforceIWYU = true;
+		IWYUSupport = IWYUSupport.KeepAsIsForNow;
 
 		PublicDependencyModuleNames.AddRange(
             new string[] {

@@ -37,6 +37,8 @@ public:
 	virtual void Stop() override;
 
 protected:
+	void QueueTaskInternal(FKantanDocGenSettings const& Settings, FNotificationInfo& TaskInfo);
+
 	struct FDocGenTask
 	{
 		FKantanDocGenSettings Settings;

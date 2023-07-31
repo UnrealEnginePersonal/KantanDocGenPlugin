@@ -15,9 +15,9 @@
 	
 	"Modules" :
 	[
-	{
-		"Name": "KantanDocGen",
-		"Type": "Editor"
-	}
+		{
+			"Name": "KantanDocGen",
+			"Type": "Editor"
+		}
 	]
 }

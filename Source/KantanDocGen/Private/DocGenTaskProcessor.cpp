@@ -21,7 +21,8 @@
 #include "Interfaces/IPluginManager.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformProcess.h"
-
+#include "Interfaces/IProjectManager.h"
+#include "ProjectDescriptor.h"
 
 #define LOCTEXT_NAMESPACE "KantanDocGen"
 
@@ -34,22 +35,83 @@ FDocGenTaskProcessor::FDocGenTaskProcessor()
 
 void FDocGenTaskProcessor::QueueTask(FKantanDocGenSettings const& Settings)
 {
-	TSharedPtr< FDocGenTask > NewTask = MakeShared< FDocGenTask >();
+	FNotificationInfo TaskInfo(FText::AsCultureInvariant("Generating doc for " + Settings.DocumentationTitle));
+	TaskInfo.Image = nullptr;
+	TaskInfo.FadeInDuration = 0.2f;
+	TaskInfo.ExpireDuration = 5.0f;
+	TaskInfo.FadeOutDuration = 1.0f;
+	TaskInfo.bUseThrobber = true;
+	TaskInfo.bUseSuccessFailIcons = true;
+	TaskInfo.bUseLargeFont = true;
+	TaskInfo.bFireAndForget = false;
+	TaskInfo.bAllowThrottleWhenFrameRateIsLow = false;
+
+	TArray<FKantanDocGenSettings> SettingsList;
+	if (EGenMethod::Manual == Settings.GenerationMethod)
+	{
+		SettingsList.Add(Settings);
+	}
+	else
+	{
+		// Settings may contains mdoules & paths from the UI before GenerationMethod being switched to something "automatic" let's clear this out
+		FKantanDocGenSettings VanillaSetting = Settings;
+		VanillaSetting.NativeModules.Empty();
+		VanillaSetting.ContentPaths.Empty();
+
+		const FProjectDescriptor* const CurrentProject = IProjectManager::Get().GetCurrentProject();
+		check(CurrentProject);
+		// Add Current project modules & content
+		if (EGenMethod::Project == Settings.GenerationMethod || EGenMethod::ProjectAndPlugins == Settings.GenerationMethod)
+		{
+			FKantanDocGenSettings CustomSetting = VanillaSetting;
+			CustomSetting.DocumentationTitle = FApp::GetProjectName();
+			for (const FModuleDescriptor& ModuleInfo : CurrentProject->Modules)
+			{
+				CustomSetting.NativeModules.Add(ModuleInfo.Name);
+			}
+			FDirectoryPath P;
+			P.Path = FPaths::ProjectContentDir();
+			CustomSetting.ContentPaths.Add(P);
+
+			SettingsList.Add(CustomSetting);
+		}
+		if (EGenMethod::Plugins == Settings.GenerationMethod || EGenMethod::ProjectAndPlugins == Settings.GenerationMethod)
+		{
+			// Resolve out the paths for each module and add the cut-down into to our output array
+			for (const auto& Plugin : IPluginManager::Get().GetDiscoveredPlugins())
+			{
+				// Only get plugins that are a part of the game project
+				if (Plugin->GetLoadedFrom() == EPluginLoadedFrom::Project)
+				{
+					FKantanDocGenSettings CustomSetting = VanillaSetting;
+					CustomSetting.DocumentationTitle = Plugin->GetName();
+					FDirectoryPath P;
+					P.Path = "/" + Plugin->GetName();
+					CustomSetting.ContentPaths.Add(P);
+
+					for (const FModuleDescriptor& PluginModule : Plugin->GetDescriptor().Modules)
+					{
+						CustomSetting.NativeModules.Add(PluginModule.Name);
+					}
+					SettingsList.Add(CustomSetting);
+				}
+			}
+		}
+	}	
+	// Queue generation for every requested settings
+	for (const FKantanDocGenSettings& S : SettingsList)
+	{
+		TaskInfo.Text = FText::AsCultureInvariant("Generating doc for " + S.DocumentationTitle);
+		QueueTaskInternal(S, TaskInfo);
+	}
+}
+
+void FDocGenTaskProcessor::QueueTaskInternal(FKantanDocGenSettings const& Settings, FNotificationInfo& TaskInfo)
+{
+	TSharedPtr<FDocGenTask> NewTask = MakeShared<FDocGenTask>();
 	NewTask->Settings = Settings;
-
-	FNotificationInfo Info(LOCTEXT("DocGenWaiting", "Doc gen waiting"));
-	Info.Image = nullptr;//FAppStyle::GetBrush(TEXT("LevelEditor.RecompileGameCode"));
-	Info.FadeInDuration = 0.2f;
-	Info.ExpireDuration = 5.0f;
-	Info.FadeOutDuration = 1.0f;
-	Info.bUseThrobber = true;
-	Info.bUseSuccessFailIcons = true;
-	Info.bUseLargeFont = true;
-	Info.bFireAndForget = false;
-	Info.bAllowThrottleWhenFrameRateIsLow = false;
-	NewTask->Notification = FSlateNotificationManager::Get().AddNotification(Info);
+	NewTask->Notification = FSlateNotificationManager::Get().AddNotification(TaskInfo);
 	NewTask->Notification->SetCompletionState(SNotificationItem::CS_Pending);
-
 	Waiting.Enqueue(NewTask);
 }
 
@@ -92,8 +154,6 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr< FDocGenTask > InTask)
 	auto GameThread_InitDocGen = [this](FString const& DocTitle, FString const& IntermediateDir) -> bool
 	{
 		Current->Task->Notification->SetExpireDuration(2.0f);
-		Current->Task->Notification->SetText(LOCTEXT("DocGenInProgress", "Doc gen in progress"));
-
 		return Current->DocGen->GT_Init(DocTitle, IntermediateDir, Current->Task->Settings.BlueprintContextClass);
 	};
 
@@ -184,15 +244,12 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr< FDocGenTask > InTask)
 	auto GameThread_FinalizeDocs = [this](FString const& OutputPath) -> bool
 	{
 		bool const Result = Current->DocGen->GT_Finalize(OutputPath);
-
 		if (!Result)
 		{
 			Current->Task->Notification->SetText(LOCTEXT("DocFinalizationFailed", "Doc gen failed"));
 			Current->Task->Notification->SetCompletionState(SNotificationItem::CS_Fail);
 			Current->Task->Notification->ExpireAndFadeout();
-			//GEditor->PlayEditorSound(CompileSuccessSound);
 		}
-
 		return Result;
 	};
 
@@ -215,19 +272,10 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr< FDocGenTask > InTask)
 		return;
 	}
 
-	bool const bCleanIntermediate = true;
-	if(bCleanIntermediate)
-	{
-		IFileManager::Get().DeleteDirectory(*IntermediateDir, false, true);
-	}
-
-	for(auto const& Name : Current->Task->Settings.ExcludedClasses)
-	{
-		Current->Excluded.Add(Name);
-	}
+	IFileManager::Get().DeleteDirectory(*IntermediateDir, false, true);
 
 	int SuccessfulNodeCount = 0;
-	while(Current->Enumerators.Dequeue(Current->CurrentEnumerator))
+	while (Current->Enumerators.Dequeue(Current->CurrentEnumerator))
 	{
 		while(DocGenThreads::RunOnGameThreadRetVal(GameThread_EnumerateNextObject))	// Game thread: Enumerate next Obj, get spawner list for Obj, store as array of weak ptrs.
 		{
@@ -379,12 +427,6 @@ FDocGenTaskProcessor::EIntermediateProcessingResult FDocGenTaskProcessor::Proces
 		{
 			bProcessFinished = FPlatformProcess::GetProcReturnCode(Proc, &ReturnCode);
 
-			/*			if(!bProcessFinished && Warn->ReceivedUserCancel())
-			{
-			FPlatformProcess::TerminateProc(ProcessHandle);
-			bProcessFinished = true;
-			}
-			*/
 			BufferedText += FPlatformProcess::ReadPipe(PipeRead);
 
 			int32 EndOfLineIdx;
@@ -401,8 +443,6 @@ FDocGenTaskProcessor::EIntermediateProcessingResult FDocGenTaskProcessor::Proces
 			FPlatformProcess::Sleep(0.1f);
 		}
 
-		//FPlatformProcess::WaitForProc(Proc);
-		//FPlatformProcess::GetProcReturnCode(Proc, &ReturnCode);
 		FPlatformProcess::CloseProc(Proc);
 		Proc.Reset();
 
