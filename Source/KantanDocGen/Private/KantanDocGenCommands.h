@@ -8,11 +8,11 @@
 
 #include "Framework/Commands/Commands.h"
 
-class FKantanDocGenCommands : public TCommands< FKantanDocGenCommands >
+class FKantanDocGenCommands : public TCommands<FKantanDocGenCommands>
 {
 public:
-	FKantanDocGenCommands() : TCommands< FKantanDocGenCommands >
-	(
+	FKantanDocGenCommands()
+	: TCommands<FKantanDocGenCommands>(
 		"KantanDocGen", // Context name for fast lookup
 		NSLOCTEXT("Contexts", "KantanDocGen", "Kantan Doc Gen"), // Localized context name for displaying
 		NAME_None, // Parent
@@ -20,7 +20,7 @@ public:
 	)
 	{
 	}
-	
+
 	/**
 	 * Initialize commands
 	 */
@@ -28,10 +28,8 @@ public:
 
 public:
 	// Mode Switch
-	TSharedPtr< FUICommandInfo > ShowDocGenUI;
+	TSharedPtr<FUICommandInfo> ShowDocGenUI;
 
 	// Map
-	TMap< FName, TSharedPtr< FUICommandInfo > > NameToCommandMap;
+	TMap<FName, TSharedPtr<FUICommandInfo>> NameToCommandMap;
 };
-
-

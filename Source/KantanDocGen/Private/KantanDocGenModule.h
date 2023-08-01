@@ -7,8 +7,7 @@
 #pragma once
 
 #include "Modules/ModuleManager.h"
-#include "DocGenTaskProcessor.h"	// TUniquePtr seems to need full definition...
-
+#include "DocGenTaskProcessor.h" // TUniquePtr seems to need full definition...
 
 class FUICommandList;
 
@@ -19,7 +18,8 @@ class FKantanDocGenModule : public FDefaultGameModuleImpl
 {
 public:
 	FKantanDocGenModule()
-	{}
+	{
+	}
 
 public:
 	/** IModuleInterface implementation */
@@ -34,9 +34,7 @@ protected:
 	void ShowDocGenUI();
 
 protected:
-	TUniquePtr< FDocGenTaskProcessor > Processor;
+	TUniquePtr<FDocGenTaskProcessor> Processor;
 
-	TSharedPtr< FUICommandList > UICommands;
+	TSharedPtr<FUICommandList> UICommands;
 };
-
-

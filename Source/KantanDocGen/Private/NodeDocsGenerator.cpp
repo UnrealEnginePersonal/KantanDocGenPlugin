@@ -42,16 +42,15 @@ FNodeDocsGenerator::~FNodeDocsGenerator()
 
 bool FNodeDocsGenerator::GT_Init(FString const& InDocsTitle, FString const& InOutputDir, UClass* BlueprintContextClass)
 {
-	DummyBP = CastChecked< UBlueprint >(FKismetEditorUtilities::CreateBlueprint(
+	DummyBP = CastChecked<UBlueprint>(FKismetEditorUtilities::CreateBlueprint(
 		BlueprintContextClass,
 		::GetTransientPackage(),
 		NAME_None,
 		EBlueprintType::BPTYPE_Normal,
 		UBlueprint::StaticClass(),
 		UBlueprintGeneratedClass::StaticClass(),
-		NAME_None
-	));
-	if(!DummyBP.IsValid())
+		NAME_None));
+	if (!DummyBP.IsValid())
 	{
 		return false;
 	}
@@ -62,8 +61,7 @@ bool FNodeDocsGenerator::GT_Init(FString const& InDocsTitle, FString const& InOu
 	Graph->AddToRoot();
 
 	GraphPanel = SNew(SGraphPanel)
-		.GraphObj(Graph.Get())
-		;
+					 .GraphObj(Graph.Get());
 	// We want full detail for rendering, passing a super-high zoom value will guarantee the highest LOD.
 	GraphPanel->RestoreViewSettings(FVector2D(0, 0), 10.0f);
 
@@ -89,7 +87,7 @@ UK2Node* FNodeDocsGenerator::GT_DocumentSimpleObject(UObject* SourceObject, FNod
 		UpdateIndexDocWithStruct(IndexXml.Get(), Struct);
 		return nullptr;
 	}
-	
+
 	//InitializeForSpawner supports "nullptr" spawner for simple classes (handled gracefully in IsSpawnerDocumentable)
 	return GT_InitializeForSpawner(nullptr, SourceObject, OutState);
 }
@@ -108,7 +106,7 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 		auto NodeInst = Spawner->Invoke(Graph.Get(), IBlueprintNodeBinder::FBindingSet{}, FVector2D(0, 0));
 
 		// Currently Blueprint nodes only
-		K2NodeInst = Cast< UK2Node >(NodeInst);
+		K2NodeInst = Cast<UK2Node>(NodeInst);
 
 		if (K2NodeInst == nullptr)
 		{
@@ -119,7 +117,7 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 
 	auto AssociatedClass = MapToAssociatedClass(K2NodeInst, SourceObject);
 
-	if(!ClassDocsMap.Contains(AssociatedClass))
+	if (!ClassDocsMap.Contains(AssociatedClass))
 	{
 		// New class xml file needs adding
 		ClassDocsMap.Add(AssociatedClass, InitClassDocXml(AssociatedClass));
@@ -138,12 +136,12 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 
 bool FNodeDocsGenerator::GT_Finalize(FString OutputPath)
 {
-	if(!SaveClassDocXml(OutputPath))
+	if (!SaveClassDocXml(OutputPath))
 	{
 		return false;
 	}
 
-	if(!SaveIndexXml(OutputPath))
+	if (!SaveIndexXml(OutputPath))
 	{
 		return false;
 	}
@@ -153,17 +151,17 @@ bool FNodeDocsGenerator::GT_Finalize(FString OutputPath)
 
 void FNodeDocsGenerator::CleanUp()
 {
-	if(GraphPanel.IsValid())
+	if (GraphPanel.IsValid())
 	{
 		GraphPanel.Reset();
 	}
 
-	if(DummyBP.IsValid())
+	if (DummyBP.IsValid())
 	{
 		DummyBP->RemoveFromRoot();
 		DummyBP.Reset();
 	}
-	if(Graph.IsValid())
+	if (Graph.IsValid())
 	{
 		Graph->RemoveFromRoot();
 		Graph.Reset();
@@ -179,57 +177,57 @@ bool FNodeDocsGenerator::GenerateNodeImage(UEdGraphNode* Node, FNodeProcessingSt
 	FString NodeName = GetNodeDocId(Node);
 
 	bool bSuccess = DocGenThreads::RunOnGameThreadRetVal([&]
-	{
-		auto NodeWidget = FNodeFactory::CreateNodeWidget(Node);
-		NodeWidget->SetOwner(GraphPanel.ToSharedRef());
-
-		const bool bUseGammaCorrection = false;
-		FWidgetRenderer Renderer(bUseGammaCorrection);
-		Renderer.SetIsPrepassNeeded(true);
-		auto RenderTarget = Renderer.DrawWidget(NodeWidget.ToSharedRef(), FVector2D(1024.0f, 1024.0f));
-
-		auto Desired = NodeWidget->GetDesiredSize();
-	
-		FTextureRenderTargetResource* RTResource = RenderTarget->GameThread_GetRenderTargetResource();
-		FIntRect Rect = FIntRect(0, 0, (int32)Desired.X, (int32)Desired.Y);
-		FReadSurfaceDataFlags ReadPixelFlags(RCM_UNorm);
-		ReadPixelFlags.SetLinearToGamma(true); // @TODO: is this gamma correction, or something else?
-
-		TArray<FColor> Pixels;
-		if (RTResource->ReadPixels(Pixels, ReadPixelFlags, Rect) == false)
 		{
-			UE_LOG(LogKantanDocGen, Warning, TEXT("Failed to read pixels for node image."));
-			return false;
-		}
+			auto NodeWidget = FNodeFactory::CreateNodeWidget(Node);
+			NodeWidget->SetOwner(GraphPanel.ToSharedRef());
 
-		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+			const bool bUseGammaCorrection = false;
+			FWidgetRenderer Renderer(bUseGammaCorrection);
+			Renderer.SetIsPrepassNeeded(true);
+			auto RenderTarget = Renderer.DrawWidget(NodeWidget.ToSharedRef(), FVector2D(1024.0f, 1024.0f));
 
-		TArray<uint8> CompressedImage;
+			auto Desired = NodeWidget->GetDesiredSize();
 
-		const int32 X = (int32)Desired.X;
-		const int32 Y = (int32)Desired.Y;
-		if (!ImageWrapper->SetRaw(Pixels.GetData(), X * Y * sizeof(FColor), X, Y, ERGBFormat::BGRA, 8))
-		{
-			UE_LOG(LogKantanDocGen, Error, TEXT("Failed to set raw pixels for node %s."), *NodeName);
-			return false;
-		}
+			FTextureRenderTargetResource* RTResource = RenderTarget->GameThread_GetRenderTargetResource();
+			FIntRect Rect = FIntRect(0, 0, (int32)Desired.X, (int32)Desired.Y);
+			FReadSurfaceDataFlags ReadPixelFlags(RCM_UNorm);
+			ReadPixelFlags.SetLinearToGamma(true); // @TODO: is this gamma correction, or something else?
 
-		CompressedImage = ImageWrapper->GetCompressed(90);
+			TArray<FColor> Pixels;
+			if (RTResource->ReadPixels(Pixels, ReadPixelFlags, Rect) == false)
+			{
+				UE_LOG(LogKantanDocGen, Warning, TEXT("Failed to read pixels for node image."));
+				return false;
+			}
 
-		State.RelImageBasePath = TEXT("../img");
-		FString ImageBasePath = State.ClassDocsPath / TEXT("img");// State.RelImageBasePath;
-		FString ImgFilename = FString::Printf(TEXT("nd_img_%s.png"), *NodeName);
-		FString ScreenshotSaveName = ImageBasePath / ImgFilename;
+			IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+			TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
-		if (!FFileHelper::SaveArrayToFile(CompressedImage, *ScreenshotSaveName))
-		{
-			UE_LOG(LogKantanDocGen, Error, TEXT("Failed to save %s."), *ScreenshotSaveName);
-			return false;
-		}
-		State.ImageFilename = ImgFilename;
-		return true;
-	});
+			TArray<uint8> CompressedImage;
+
+			const int32 X = (int32)Desired.X;
+			const int32 Y = (int32)Desired.Y;
+			if (!ImageWrapper->SetRaw(Pixels.GetData(), X * Y * sizeof(FColor), X, Y, ERGBFormat::BGRA, 8))
+			{
+				UE_LOG(LogKantanDocGen, Error, TEXT("Failed to set raw pixels for node %s."), *NodeName);
+				return false;
+			}
+
+			CompressedImage = ImageWrapper->GetCompressed(90);
+
+			State.RelImageBasePath = TEXT("../img");
+			FString ImageBasePath = State.ClassDocsPath / TEXT("img"); // State.RelImageBasePath;
+			FString ImgFilename = FString::Printf(TEXT("nd_img_%s.png"), *NodeName);
+			FString ScreenshotSaveName = ImageBasePath / ImgFilename;
+
+			if (!FFileHelper::SaveArrayToFile(CompressedImage, *ScreenshotSaveName))
+			{
+				UE_LOG(LogKantanDocGen, Error, TEXT("Failed to save %s."), *ScreenshotSaveName);
+				return false;
+			}
+			State.ImageFilename = ImgFilename;
+			return true;
+		});
 	return bSuccess;
 }
 
@@ -262,11 +260,11 @@ bool ExtractPinInformation(UEdGraphPin* Pin, FString& OutName, FString& OutType,
 	FString Tooltip;
 	Pin->GetOwningNode()->GetPinHoverText(*Pin, Tooltip);
 
-	if(!Tooltip.IsEmpty())
+	if (!Tooltip.IsEmpty())
 	{
 		// @NOTE: This is based on the formatting in UEdGraphSchema_K2::ConstructBasicPinTooltip.
 		// If that is changed, this will fail!
-		
+
 		auto TooltipPtr = *Tooltip;
 
 		// Parse name line
@@ -276,7 +274,7 @@ bool ExtractPinInformation(UEdGraphPin* Pin, FString& OutName, FString& OutType,
 
 		// Currently there is an empty line here, but FParse::Line seems to gobble up empty lines as part of the previous call.
 		// Anyway, attempting here to deal with this generically in case that weird behaviour changes.
-		while(*TooltipPtr == TEXT('\n'))
+		while (*TooltipPtr == TEXT('\n'))
 		{
 			FString Buf;
 			FParse::Line(&TooltipPtr, Buf);
@@ -289,7 +287,7 @@ bool ExtractPinInformation(UEdGraphPin* Pin, FString& OutName, FString& OutType,
 	// @NOTE: Currently overwriting the name and type as suspect this is more robust to future engine changes.
 
 	OutName = Pin->GetDisplayName().ToString();
-	if(OutName.IsEmpty() && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
+	if (OutName.IsEmpty() && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
 	{
 		OutName = Pin->Direction == EEdGraphPinDirection::EGPD_Input ? TEXT("In") : TEXT("Out");
 	}
@@ -299,12 +297,12 @@ bool ExtractPinInformation(UEdGraphPin* Pin, FString& OutName, FString& OutType,
 	return true;
 }
 
-TSharedPtr< FXmlFile > FNodeDocsGenerator::InitIndexXml(FString const& IndexTitle)
+TSharedPtr<FXmlFile> FNodeDocsGenerator::InitIndexXml(FString const& IndexTitle)
 {
 	const FString FileTemplate = R"xxx(<?xml version="1.0" encoding="UTF-8"?>
 <root></root>)xxx";
 
-	TSharedPtr< FXmlFile > File = MakeShared< FXmlFile >(FileTemplate, EConstructMethod::ConstructFromBuffer);
+	TSharedPtr<FXmlFile> File = MakeShared<FXmlFile>(FileTemplate, EConstructMethod::ConstructFromBuffer);
 	auto Root = File->GetRootNode();
 
 	AppendChildCDATA(Root, TEXT("display_name"), IndexTitle);
@@ -361,12 +359,12 @@ namespace
 	}
 };
 
-TSharedPtr< FXmlFile > FNodeDocsGenerator::InitClassDocXml(UClass* Class)
+TSharedPtr<FXmlFile> FNodeDocsGenerator::InitClassDocXml(UClass* Class)
 {
 	const FString FileTemplate = R"xxx(<?xml version="1.0" encoding="UTF-8"?>
 <root></root>)xxx";
 
-	TSharedPtr< FXmlFile > File = MakeShared< FXmlFile >(FileTemplate, EConstructMethod::ConstructFromBuffer);
+	TSharedPtr<FXmlFile> File = MakeShared<FXmlFile>(FileTemplate, EConstructMethod::ConstructFromBuffer);
 	auto Root = File->GetRootNode();
 
 	AppendChildCDATA(Root, TEXT("docs_name"), DocsTitle);
@@ -429,7 +427,7 @@ bool FNodeDocsGenerator::UpdateIndexDocWithClass(FXmlFile* DocFile, UClass* Clas
 		if (Groups.Num() > 0)
 			AppendChildCDATA(ClassElem, TEXT("group"), Groups[0]);
 	}
-	else 
+	else
 	{
 		UBlueprint* BP = Cast<UBlueprint>(SourceObject);
 		if (nullptr != BP)
@@ -522,7 +520,7 @@ bool FNodeDocsGenerator::GenerateNodeDocs(UK2Node* Node, FNodeProcessingState& S
 
 	FXmlFile File(FileTemplate, EConstructMethod::ConstructFromBuffer);
 	auto Root = File.GetRootNode();
-	
+
 	AppendChildCDATA(Root, TEXT("docs_name"), DocsTitle);
 	// Since we pull these from the class xml file, the entries are already CDATA wrapped
 	AppendChildRaw(Root, TEXT("class_id"), State.ClassDocXml->GetRootNode()->FindChildNode(TEXT("id"))->GetContent());
@@ -533,7 +531,7 @@ bool FNodeDocsGenerator::GenerateNodeDocs(UK2Node* Node, FNodeProcessingState& S
 
 	FString NodeFullTitle = Node->GetNodeTitle(ENodeTitleType::FullTitle).ToString();
 	auto TargetIdx = NodeFullTitle.Find(TEXT("Target is "), ESearchCase::CaseSensitive);
-	if(TargetIdx != INDEX_NONE)
+	if (TargetIdx != INDEX_NONE)
 	{
 		NodeFullTitle = NodeFullTitle.Left(TargetIdx).TrimEnd();
 	}
@@ -542,13 +540,13 @@ bool FNodeDocsGenerator::GenerateNodeDocs(UK2Node* Node, FNodeProcessingState& S
 	AppendChildCDATA(Root, TEXT("description"), GetNodeDescription(Node));
 	AppendChildCDATA(Root, TEXT("imgpath"), State.RelImageBasePath / State.ImageFilename);
 	AppendChildCDATA(Root, TEXT("category"), Node->GetMenuCategory().ToString());
-	
+
 	auto Inputs = AppendChild(Root, TEXT("inputs"));
-	for(auto Pin : Node->Pins)
+	for (auto Pin : Node->Pins)
 	{
-		if(Pin->Direction == EEdGraphPinDirection::EGPD_Input)
+		if (Pin->Direction == EEdGraphPinDirection::EGPD_Input)
 		{
-			if(ShouldDocumentPin(Pin))
+			if (ShouldDocumentPin(Pin))
 			{
 				auto Input = AppendChild(Inputs, TEXT("param"));
 
@@ -563,11 +561,11 @@ bool FNodeDocsGenerator::GenerateNodeDocs(UK2Node* Node, FNodeProcessingState& S
 	}
 
 	auto Outputs = AppendChild(Root, TEXT("outputs"));
-	for(auto Pin : Node->Pins)
+	for (auto Pin : Node->Pins)
 	{
-		if(Pin->Direction == EEdGraphPinDirection::EGPD_Output)
+		if (Pin->Direction == EEdGraphPinDirection::EGPD_Output)
 		{
-			if(ShouldDocumentPin(Pin))
+			if (ShouldDocumentPin(Pin))
 			{
 				auto Output = AppendChild(Outputs, TEXT("param"));
 
@@ -581,16 +579,16 @@ bool FNodeDocsGenerator::GenerateNodeDocs(UK2Node* Node, FNodeProcessingState& S
 		}
 	}
 
-	if(!File.Save(DocFilePath))
+	if (!File.Save(DocFilePath))
 	{
 		return false;
 	}
 
-	if(!UpdateClassDocWithNode(State.ClassDocXml.Get(), Node))
+	if (!UpdateClassDocWithNode(State.ClassDocXml.Get(), Node))
 	{
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -604,7 +602,7 @@ bool FNodeDocsGenerator::SaveIndexXml(FString const& OutDir)
 
 bool FNodeDocsGenerator::SaveClassDocXml(FString const& OutDir)
 {
-	for(auto const& Entry : ClassDocsMap)
+	for (auto const& Entry : ClassDocsMap)
 	{
 		auto ClassId = GetClassDocId(Entry.Key.Get());
 		auto Path = OutDir / ClassId / (ClassId + TEXT(".xml"));
@@ -614,13 +612,12 @@ bool FNodeDocsGenerator::SaveClassDocXml(FString const& OutDir)
 	return true;
 }
 
-
 void FNodeDocsGenerator::AdjustNodeForSnapshot(UEdGraphNode* Node)
 {
 	// Hide default value box containing 'self' for Target pin
-	if(auto K2_Schema = Cast< UEdGraphSchema_K2 >(Node->GetSchema()))
+	if (auto K2_Schema = Cast<UEdGraphSchema_K2>(Node->GetSchema()))
 	{
-		if(auto TargetPin = Node->FindPin(K2_Schema->PN_Self))
+		if (auto TargetPin = Node->FindPin(K2_Schema->PN_Self))
 		{
 			TargetPin->bDefaultValueIsIgnored = true;
 		}
@@ -638,7 +635,6 @@ FString FNodeDocsGenerator::GetNodeDocId(UEdGraphNode* Node)
 	return Node->GetDocumentationExcerptName();
 }
 
-
 #include "BlueprintVariableNodeSpawner.h"
 #include "BlueprintDelegateNodeSpawner.h"
 #include "K2Node_CallFunction.h"
@@ -651,10 +647,10 @@ If there is no special mapping for the node, the function determines the class f
 UClass* FNodeDocsGenerator::MapToAssociatedClass(UK2Node* NodeInst, UObject* Source)
 {
 	// For nodes derived from UK2Node_CallFunction, associate with the class owning the called function.
-	if(auto FuncNode = Cast< UK2Node_CallFunction >(NodeInst))
+	if (auto FuncNode = Cast<UK2Node_CallFunction>(NodeInst))
 	{
 		auto Func = FuncNode->GetTargetFunction();
-		if(Func)
+		if (Func)
 		{
 			UClass* OwnerClass = Func->GetOwnerClass();
 			if (OwnerClass->ClassGeneratedBy)
@@ -668,11 +664,11 @@ UClass* FNodeDocsGenerator::MapToAssociatedClass(UK2Node* NodeInst, UObject* Sou
 	}
 
 	// Default fallback
-	if(auto SourceClass = Cast< UClass >(Source))
+	if (auto SourceClass = Cast<UClass>(Source))
 	{
 		return SourceClass;
 	}
-	else if(auto SourceBP = Cast< UBlueprint >(Source))
+	else if (auto SourceBP = Cast<UBlueprint>(Source))
 	{
 		return SourceBP->GeneratedClass;
 	}
@@ -687,7 +683,7 @@ bool FNodeDocsGenerator::IsSpawnerDocumentable(UBlueprintNodeSpawner* Spawner, b
 	if (nullptr == Spawner)
 		return false;
 	// Spawners of or deriving from the following classes will be excluded
-	static const TSubclassOf< UBlueprintNodeSpawner > ExcludedSpawnerClasses[] = {
+	static const TSubclassOf<UBlueprintNodeSpawner> ExcludedSpawnerClasses[] = {
 		UBlueprintVariableNodeSpawner::StaticClass(),
 		UBlueprintDelegateNodeSpawner::StaticClass(),
 		UBlueprintBoundNodeSpawner::StaticClass(),
@@ -696,12 +692,12 @@ bool FNodeDocsGenerator::IsSpawnerDocumentable(UBlueprintNodeSpawner* Spawner, b
 	};
 
 	// Spawners of or deriving from the following classes will be excluded in a blueprint context
-	static const TSubclassOf< UBlueprintNodeSpawner > BlueprintOnlyExcludedSpawnerClasses[] = {
+	static const TSubclassOf<UBlueprintNodeSpawner> BlueprintOnlyExcludedSpawnerClasses[] = {
 		UBlueprintEventNodeSpawner::StaticClass(),
 	};
 
 	// Spawners for nodes of these types (or their subclasses) will be excluded
-	static const TSubclassOf< UK2Node > ExcludedNodeClasses[] = {
+	static const TSubclassOf<UK2Node> ExcludedNodeClasses[] = {
 		UK2Node_DynamicCast::StaticClass(),
 		UK2Node_Message::StaticClass(),
 	};
@@ -713,48 +709,47 @@ bool FNodeDocsGenerator::IsSpawnerDocumentable(UBlueprintNodeSpawner* Spawner, b
 
 	static const uint32 PermittedAccessSpecifiers = (FUNC_Public | FUNC_Protected);
 
-
-	for(auto ExclSpawnerClass : ExcludedSpawnerClasses)
+	for (auto ExclSpawnerClass : ExcludedSpawnerClasses)
 	{
-		if(Spawner->IsA(ExclSpawnerClass))
+		if (Spawner->IsA(ExclSpawnerClass))
 		{
 			return false;
 		}
 	}
 
-	if(bIsBlueprint)
+	if (bIsBlueprint)
 	{
-		for(auto ExclSpawnerClass : BlueprintOnlyExcludedSpawnerClasses)
+		for (auto ExclSpawnerClass : BlueprintOnlyExcludedSpawnerClasses)
 		{
-			if(Spawner->IsA(ExclSpawnerClass))
+			if (Spawner->IsA(ExclSpawnerClass))
 			{
 				return false;
 			}
 		}
 	}
 
-	for(auto ExclNodeClass : ExcludedNodeClasses)
+	for (auto ExclNodeClass : ExcludedNodeClasses)
 	{
-		if(Spawner->NodeClass->IsChildOf(ExclNodeClass))
+		if (Spawner->NodeClass->IsChildOf(ExclNodeClass))
 		{
 			return false;
 		}
 	}
 
-	if(auto FuncSpawner = Cast< UBlueprintFunctionNodeSpawner >(Spawner))
+	if (auto FuncSpawner = Cast<UBlueprintFunctionNodeSpawner>(Spawner))
 	{
 		auto Func = FuncSpawner->GetFunction();
 
 		// @NOTE: We exclude based on access level, but only if this is not a spawner for a blueprint event
 		// (custom events do not have any access specifiers)
-		if((Func->FunctionFlags & FUNC_BlueprintEvent) == 0 && (Func->FunctionFlags & PermittedAccessSpecifiers) == 0)
+		if ((Func->FunctionFlags & FUNC_BlueprintEvent) == 0 && (Func->FunctionFlags & PermittedAccessSpecifiers) == 0)
 		{
 			return false;
 		}
 
-		for(auto const& Meta : ExcludedFunctionMeta)
+		for (auto const& Meta : ExcludedFunctionMeta)
 		{
-			if(Func->HasMetaData(Meta))
+			if (Func->HasMetaData(Meta))
 			{
 				return false;
 			}
@@ -763,4 +758,3 @@ bool FNodeDocsGenerator::IsSpawnerDocumentable(UBlueprintNodeSpawner* Spawner, b
 
 	return true;
 }
-

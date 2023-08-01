@@ -10,7 +10,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
-
 class UClass;
 class UBlueprint;
 class UEdGraph;
@@ -23,23 +22,25 @@ class FNodeDocsGenerator
 {
 public:
 	FNodeDocsGenerator()
-	{}
+	{
+	}
 	~FNodeDocsGenerator();
 
 public:
 	struct FNodeProcessingState
 	{
-		TSharedPtr< FXmlFile > ClassDocXml;
+		TSharedPtr<FXmlFile> ClassDocXml;
 		FString ClassDocsPath;
 		FString RelImageBasePath;
 		FString ImageFilename;
 
-		FNodeProcessingState():
-			ClassDocXml()
-			, ClassDocsPath()
-			, RelImageBasePath()
-			, ImageFilename()
-		{}
+		FNodeProcessingState()
+		: ClassDocXml()
+		, ClassDocsPath()
+		, RelImageBasePath()
+		, ImageFilename()
+		{
+		}
 	};
 
 public:
@@ -57,8 +58,8 @@ public:
 
 protected:
 	void CleanUp();
-	TSharedPtr< FXmlFile > InitIndexXml(FString const& IndexTitle);
-	TSharedPtr< FXmlFile > InitClassDocXml(UClass* Class);
+	TSharedPtr<FXmlFile> InitIndexXml(FString const& IndexTitle);
+	TSharedPtr<FXmlFile> InitClassDocXml(UClass* Class);
 	bool UpdateIndexDocWithClass(FXmlFile* DocFile, UClass* Class, UObject* SourceObject);
 	bool UpdateIndexDocWithEnum(FXmlFile* DocFile, UEnum* Enum);
 	bool UpdateIndexDocWithStruct(FXmlFile* DocFile, UScriptStruct* Struct);
@@ -73,13 +74,13 @@ protected:
 	static bool IsSpawnerDocumentable(UBlueprintNodeSpawner* Spawner, bool bIsBlueprint);
 
 protected:
-	TWeakObjectPtr< UBlueprint > DummyBP;
-	TWeakObjectPtr< UEdGraph > Graph;
-	TSharedPtr< class SGraphPanel > GraphPanel;
+	TWeakObjectPtr<UBlueprint> DummyBP;
+	TWeakObjectPtr<UEdGraph> Graph;
+	TSharedPtr<class SGraphPanel> GraphPanel;
 
 	FString DocsTitle;
-	TSharedPtr< FXmlFile > IndexXml;
-	TMap< TWeakObjectPtr< UClass >, TSharedPtr< FXmlFile > > ClassDocsMap;
+	TSharedPtr<FXmlFile> IndexXml;
+	TMap<TWeakObjectPtr<UClass>, TSharedPtr<FXmlFile>> ClassDocsMap;
 
 	FString OutputDir;
 
@@ -89,5 +90,3 @@ public:
 	double GenerateNodeDocsTime = 0.0;
 	//
 };
-
-

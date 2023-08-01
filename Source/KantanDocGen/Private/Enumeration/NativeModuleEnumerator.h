@@ -8,13 +8,11 @@
 
 #include "ISourceObjectEnumerator.h"
 
-
-class FNativeModuleEnumerator: public ISourceObjectEnumerator
+class FNativeModuleEnumerator : public ISourceObjectEnumerator
 {
 public:
 	FNativeModuleEnumerator(
-		FName const& InModuleName
-	);
+		FName const& InModuleName);
 
 public:
 	virtual UObject* GetNext() override;
@@ -25,8 +23,6 @@ protected:
 	void Prepass(FName const& ModuleName);
 
 protected:
-	TArray< TWeakObjectPtr< UObject > > ObjectList;
+	TArray<TWeakObjectPtr<UObject>> ObjectList;
 	int32 CurIndex;
 };
-
-

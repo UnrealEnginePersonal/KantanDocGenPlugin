@@ -9,12 +9,12 @@
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 
-
 class SKantanDocGenWidget : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SKantanDocGenWidget)
-	{}
+	{
+	}
 
 	SLATE_END_ARGS()
 
@@ -25,7 +25,4 @@ protected:
 	FReply OnGenerateDocs();
 
 protected:
-	
 };
-
-

@@ -8,18 +8,17 @@
 
 #include "Async/TaskGraphInterfaces.h"
 
-
 namespace DocGenThreads
 {
 
-	template < typename TLambda >
+	template<typename TLambda>
 	inline auto RunOnGameThread(TLambda Func) -> void
 	{
 		FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady(MoveTemp(Func), TStatId(), nullptr, ENamedThreads::GameThread);
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(Task);
 	}
 
-	template < typename TLambda, typename... TArgs >
+	template<typename TLambda, typename... TArgs>
 	inline auto RunOnGameThreadRetVal(TLambda Func, TArgs&... Args) -> decltype(Func(Args...))
 	{
 		typedef decltype(Func(Args...)) TResult;
@@ -37,4 +36,3 @@ namespace DocGenThreads
 	}
 
 }
-

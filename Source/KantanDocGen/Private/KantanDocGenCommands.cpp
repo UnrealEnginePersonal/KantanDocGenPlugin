@@ -6,9 +6,7 @@
 
 #include "KantanDocGenCommands.h"
 
-
 #define LOCTEXT_NAMESPACE "KantanDocGen"
-
 
 void FKantanDocGenCommands::RegisterCommands()
 {
@@ -16,7 +14,4 @@ void FKantanDocGenCommands::RegisterCommands()
 	NameToCommandMap.Add(TEXT("ShowDocGenUI"), ShowDocGenUI);
 }
 
-
 #undef LOCTEXT_NAMESPACE
-
-

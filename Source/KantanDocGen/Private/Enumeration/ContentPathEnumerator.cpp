@@ -11,10 +11,8 @@
 #include "Engine/Blueprint.h"
 #include "Animation/AnimBlueprint.h"
 
-
 FContentPathEnumerator::FContentPathEnumerator(
-	FName const& InPath
-)
+	FName const& InPath)
 {
 	CurIndex = 0;
 
@@ -23,13 +21,13 @@ FContentPathEnumerator::FContentPathEnumerator(
 
 void FContentPathEnumerator::Prepass(FName const& Path)
 {
-	auto& AssetRegistryModule = FModuleManager::GetModuleChecked< FAssetRegistryModule >("AssetRegistry");
+	auto& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	auto& AssetRegistry = AssetRegistryModule.Get();
 
 	FARFilter Filter;
 	Filter.bRecursiveClasses = true;
 	Filter.ClassPaths.Add(UBlueprint::StaticClass()->GetClassPathName());
-	
+
 	// @TODO: Not sure about this, but for some reason was generating docs for 'AnimInstance' itself.
 	Filter.RecursiveClassPathsExclusionSet.Add(UAnimBlueprint::StaticClass()->GetClassPathName());
 
@@ -41,12 +39,12 @@ UObject* FContentPathEnumerator::GetNext()
 {
 	UObject* Result = nullptr;
 
-	while(CurIndex < AssetList.Num())
+	while (CurIndex < AssetList.Num())
 	{
 		auto const& AssetData = AssetList[CurIndex];
 		++CurIndex;
 
-		if(auto Blueprint = Cast< UBlueprint >(AssetData.GetAsset()))
+		if (auto Blueprint = Cast<UBlueprint>(AssetData.GetAsset()))
 		{
 			UE_LOG(LogKantanDocGen, Log, TEXT("Enumerating object '%s' at '%s'"), *Blueprint->GetName(), *AssetData.GetObjectPathString());
 
@@ -54,7 +52,7 @@ UObject* FContentPathEnumerator::GetNext()
 			break;
 		}
 	}
-	
+
 	return Result;
 }
 
@@ -67,4 +65,3 @@ int32 FContentPathEnumerator::EstimatedSize() const
 {
 	return AssetList.Num();
 }
-

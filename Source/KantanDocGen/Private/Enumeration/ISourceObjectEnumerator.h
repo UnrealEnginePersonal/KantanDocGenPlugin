@@ -8,7 +8,6 @@
 
 #include "CoreMinimal.h"
 
-
 class UObject;
 
 class ISourceObjectEnumerator
@@ -20,5 +19,3 @@ public:
 
 	virtual ~ISourceObjectEnumerator() {}
 };
-
-

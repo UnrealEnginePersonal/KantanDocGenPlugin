@@ -68,7 +68,7 @@ public:
 };
 
 UCLASS(Config = EditorPerProjectUserSettings)
-class UKantanDocGenSettingsObject: public UObject
+class UKantanDocGenSettingsObject : public UObject
 {
 	GENERATED_BODY()
 
@@ -78,9 +78,9 @@ public:
 		static bool bInitialized = false;
 
 		// This is a singleton, use default object
-		auto DefaultSettings = GetMutableDefault< UKantanDocGenSettingsObject >();
+		auto DefaultSettings = GetMutableDefault<UKantanDocGenSettingsObject>();
 
-		if(!bInitialized)
+		if (!bInitialized)
 		{
 			InitDefaults(DefaultSettings);
 
@@ -92,17 +92,17 @@ public:
 
 	static void InitDefaults(UKantanDocGenSettingsObject* CDO)
 	{
-		if(CDO->Settings.DocumentationTitle.IsEmpty())
+		if (CDO->Settings.DocumentationTitle.IsEmpty())
 		{
 			CDO->Settings.DocumentationTitle = FApp::GetProjectName();
 		}
 
-		if(CDO->Settings.OutputDirectory.Path.IsEmpty())
+		if (CDO->Settings.OutputDirectory.Path.IsEmpty())
 		{
 			CDO->Settings.OutputDirectory.Path = FPaths::ProjectSavedDir() / TEXT("KantanDocGen");
 		}
 
-		if(CDO->Settings.BlueprintContextClass == nullptr)
+		if (CDO->Settings.BlueprintContextClass == nullptr)
 		{
 			CDO->Settings.BlueprintContextClass = AActor::StaticClass();
 		}
@@ -112,4 +112,3 @@ public:
 	UPROPERTY(EditAnywhere, Config, Category = "Kantan DocGen", Meta = (ShowOnlyInnerProperties))
 	FKantanDocGenSettings Settings;
 };
-

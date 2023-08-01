@@ -9,12 +9,11 @@
 #include "ISourceObjectEnumerator.h"
 #include "AssetRegistry/AssetData.h"
 
-class FContentPathEnumerator: public ISourceObjectEnumerator
+class FContentPathEnumerator : public ISourceObjectEnumerator
 {
 public:
 	FContentPathEnumerator(
-		FName const& InPath
-	);
+		FName const& InPath);
 
 public:
 	virtual UObject* GetNext() override;
@@ -25,8 +24,6 @@ protected:
 	void Prepass(FName const& Path);
 
 protected:
-	TArray< FAssetData > AssetList;
+	TArray<FAssetData> AssetList;
 	int32 CurIndex;
 };
-
-

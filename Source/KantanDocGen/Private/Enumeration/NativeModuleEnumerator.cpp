@@ -12,10 +12,8 @@
 #include "UObject/UObjectIterator.h"
 #include "EdGraphSchema_K2.h"
 
-
 FNativeModuleEnumerator::FNativeModuleEnumerator(
-	FName const& InModuleName
-)
+	FName const& InModuleName)
 {
 	CurIndex = 0;
 
@@ -31,12 +29,12 @@ void FNativeModuleEnumerator::Prepass(FName const& ModuleName)
 	auto PkgName = TEXT("/Script/") + ModuleName.ToString();
 
 	auto Package = FindPackage(nullptr, *PkgName);
-	if(Package == nullptr)
+	if (Package == nullptr)
 	{
 		// If it is not in memory, try to load it.
 		Package = LoadPackage(nullptr, *PkgName, LOAD_None);
 	}
-	if(Package == nullptr)
+	if (Package == nullptr)
 	{
 		UE_LOG(LogKantanDocGen, Warning, TEXT("Failed to find specified package '%s', skipping."), *PkgName);
 		return;
@@ -46,10 +44,10 @@ void FNativeModuleEnumerator::Prepass(FName const& ModuleName)
 	Package->FullyLoad();
 
 	// @TODO: Work out why the below enumeration is called twice for every class in the package (it's called on the exact same uclass instance)
-	TSet< UObject* > Processed;
+	TSet<UObject*> Processed;
 
 	// Functor to invoke on every object found in the package
-	TFunction< bool(UObject*) > ObjectEnumFtr = [&](UObject* Obj)
+	TFunction<bool(UObject*)> ObjectEnumFtr = [&](UObject* Obj)
 	{
 		// The BP action database appears to be keyed either on native UClass objects, or, in the
 		// case of blueprints, on the Blueprint object itself, as opposed to the generated class.
@@ -57,15 +55,15 @@ void FNativeModuleEnumerator::Prepass(FName const& ModuleName)
 		UObject* ObjectToProcess = nullptr;
 
 		// Native class?
-		if(auto Class = Cast< UClass >(Obj))
+		if (auto Class = Cast<UClass>(Obj))
 		{
-			if(Class->HasAllClassFlags(CLASS_Native) && !Class->HasAnyFlags(RF_ClassDefaultObject))
+			if (Class->HasAllClassFlags(CLASS_Native) && !Class->HasAnyFlags(RF_ClassDefaultObject))
 			{
 				ObjectToProcess = Class;
 			}
 		}
 
-		if(ObjectToProcess && !Processed.Contains(ObjectToProcess))
+		if (ObjectToProcess && !Processed.Contains(ObjectToProcess))
 		{
 			UE_LOG(LogKantanDocGen, Log, TEXT("Enumerating object '%s' in package '%s'"), *ObjectToProcess->GetName(), *PkgName);
 
@@ -117,4 +115,3 @@ int32 FNativeModuleEnumerator::EstimatedSize() const
 {
 	return ObjectList.Num();
 }
-

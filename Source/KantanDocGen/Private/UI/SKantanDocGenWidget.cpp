@@ -17,10 +17,9 @@
 
 #define LOCTEXT_NAMESPACE "KantanDocGen"
 
-
 void SKantanDocGenWidget::Construct(const SKantanDocGenWidget::FArguments& InArgs)
 {
-	auto& PropertyEditorModule = FModuleManager::LoadModuleChecked< FPropertyEditorModule >("PropertyEditor");
+	auto& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 	FDetailsViewArgs DetailArgs;
 	DetailArgs.bUpdatesFromSelection = false;
@@ -33,30 +32,22 @@ void SKantanDocGenWidget::Construct(const SKantanDocGenWidget::FArguments& InArg
 	auto DetailView = PropertyEditorModule.CreateDetailView(DetailArgs);
 
 	ChildSlot
-		[
-			SNew(SVerticalBox)
+		[SNew(SVerticalBox)
 
 			+ SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				DetailView
-			]
+				  .AutoHeight()
+					  [DetailView]
 
 			+ SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+				  .AutoHeight()
+					  [SNew(SHorizontalBox)
 
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SButton)
-					.Text(LOCTEXT("GenButtonLabel", "Generate Docs"))
-					.IsEnabled(this, &SKantanDocGenWidget::ValidateSettingsForGeneration)
-					.OnClicked(this, &SKantanDocGenWidget::OnGenerateDocs)
-				]
-			]
-		];
+						  + SHorizontalBox::Slot()
+								.AutoWidth()
+									[SNew(SButton)
+											.Text(LOCTEXT("GenButtonLabel", "Generate Docs"))
+											.IsEnabled(this, &SKantanDocGenWidget::ValidateSettingsForGeneration)
+											.OnClicked(this, &SKantanDocGenWidget::OnGenerateDocs)]]];
 
 	auto Settings = UKantanDocGenSettingsObject::Get();
 	DetailView->SetObject(Settings);
@@ -66,17 +57,17 @@ bool SKantanDocGenWidget::ValidateSettingsForGeneration() const
 {
 	auto const& Settings = UKantanDocGenSettingsObject::Get()->Settings;
 
-	if(Settings.DocumentationTitle.IsEmpty())
+	if (Settings.DocumentationTitle.IsEmpty())
 	{
 		return false;
 	}
 
-	if(!Settings.HasAnySources())
+	if (!Settings.HasAnySources())
 	{
 		return false;
 	}
 
-	if(Settings.BlueprintContextClass == nullptr)
+	if (Settings.BlueprintContextClass == nullptr)
 	{
 		return false;
 	}
@@ -86,15 +77,13 @@ bool SKantanDocGenWidget::ValidateSettingsForGeneration() const
 
 FReply SKantanDocGenWidget::OnGenerateDocs()
 {
-	auto& Module = FModuleManager::LoadModuleChecked< FKantanDocGenModule >(TEXT("KantanDocGen"));
+	auto& Module = FModuleManager::LoadModuleChecked<FKantanDocGenModule>(TEXT("KantanDocGen"));
 	Module.GenerateDocs(UKantanDocGenSettingsObject::Get()->Settings);
 
-	TSharedRef< SWindow > ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared()).ToSharedRef();
+	TSharedRef<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared()).ToSharedRef();
 	FSlateApplication::Get().RequestDestroyWindow(ParentWindow);
 
 	return FReply::Handled();
 }
 
-
 #undef LOCTEXT_NAMESPACE
-
