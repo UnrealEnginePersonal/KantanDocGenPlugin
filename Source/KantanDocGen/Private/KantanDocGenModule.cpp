@@ -32,10 +32,12 @@ void FKantanDocGenModule::StartupModule()
 	FKantanDocGenCommands::Register();
 
 	// Map commands
-	FUIAction ShowDocGenUI_UIAction(
-		FExecuteAction::CreateRaw(this, &FKantanDocGenModule::ShowDocGenUI),
-		FCanExecuteAction::CreateLambda([]
-			{ return true; }));
+	FUIAction ShowDocGenUI_UIAction(FExecuteAction::CreateRaw(this, &FKantanDocGenModule::ShowDocGenUI),
+		FCanExecuteAction::CreateLambda(
+			[]
+			{
+				return true;
+			}));
 
 	auto CmdInfo = FKantanDocGenCommands::Get().ShowDocGenUI;
 	UICommands->MapAction(CmdInfo, ShowDocGenUI_UIAction);
@@ -48,11 +50,7 @@ void FKantanDocGenModule::StartupModule()
 
 	auto& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 	TSharedRef<FExtender> MenuExtender(new FExtender());
-	MenuExtender->AddMenuExtension(
-		TEXT("FileProject"),
-		EExtensionHook::After,
-		UICommands.ToSharedRef(),
-		FMenuExtensionDelegate::CreateLambda(AddMenuExtension));
+	MenuExtender->AddMenuExtension(TEXT("FileProject"), EExtensionHook::After, UICommands.ToSharedRef(), FMenuExtensionDelegate::CreateLambda(AddMenuExtension));
 	LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MenuExtender);
 }
 
@@ -97,15 +95,7 @@ void FKantanDocGenModule::ShowDocGenUI()
 {
 	const FText WindowTitle = LOCTEXT("DocGenWindowTitle", "Kantan Doc Gen");
 
-	TSharedPtr<SWindow> Window =
-		SNew(SWindow)
-			.Title(WindowTitle)
-			.MinWidth(400.0f)
-			.MinHeight(300.0f)
-			.MaxHeight(600.0f)
-			.SupportsMaximize(false)
-			.SupportsMinimize(false)
-			.SizingRule(ESizingRule::Autosized);
+	TSharedPtr<SWindow> Window = SNew(SWindow).Title(WindowTitle).MinWidth(400.0f).MinHeight(300.0f).MaxHeight(600.0f).SupportsMaximize(false).SupportsMinimize(false).SizingRule(ESizingRule::Autosized);
 
 	TSharedRef<SWidget> DocGenContent = SNew(SKantanDocGenWidget);
 	Window->SetContent(DocGenContent);

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #include "Async/TaskGraphInterfaces.h"
 
 namespace DocGenThreads

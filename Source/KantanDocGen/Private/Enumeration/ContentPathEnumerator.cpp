@@ -11,8 +11,7 @@
 #include "Engine/Blueprint.h"
 #include "Animation/AnimBlueprint.h"
 
-FContentPathEnumerator::FContentPathEnumerator(
-	FName const& InPath)
+FContentPathEnumerator::FContentPathEnumerator(FName const& InPath)
 {
 	CurIndex = 0;
 

@@ -272,7 +272,7 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 
 	IFileManager::Get().DeleteDirectory(*IntermediateDir, false, true);
 
-	int SuccessfulNodeCount = 0;
+	int32 SuccessfulNodeCount = 0;
 	while (Current->Enumerators.Dequeue(Current->CurrentEnumerator))
 	{
 		while (DocGenThreads::RunOnGameThreadRetVal(GameThread_EnumerateNextObject)) // Game thread: Enumerate next Obj, get spawner list for Obj, store as array of weak ptrs.
@@ -310,13 +310,14 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 	{
 		UE_LOG(LogKantanDocGen, Error, TEXT("No nodes were found to document!"));
 
-		DocGenThreads::RunOnGameThread([this]
+		DocGenThreads::RunOnGameThread(
+			[this]
 			{
 				Current->Task->Notification->SetText(LOCTEXT("DocFinalizationFailed", "Doc gen failed - No nodes found"));
 				Current->Task->Notification->SetCompletionState(SNotificationItem::CS_Fail);
 				Current->Task->Notification->ExpireAndFadeout();
 			});
-		//GEditor->PlayEditorSound(CompileSuccessSound);
+		// GEditor->PlayEditorSound(CompileSuccessSound);
 		return;
 	}
 
@@ -327,31 +328,34 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 		return;
 	}
 
-	DocGenThreads::RunOnGameThread([this]
-		{ Current->Task->Notification->SetText(LOCTEXT("DocConversionInProgress", "Converting docs")); });
+	DocGenThreads::RunOnGameThread(
+		[this]
+		{
+			Current->Task->Notification->SetText(LOCTEXT("DocConversionInProgress", "Converting docs"));
+		});
 
-	auto TransformationResult = ProcessIntermediateDocs(
-		IntermediateDir,
-		Current->Task->Settings.OutputDirectory.Path,
-		Current->Task->Settings.DocumentationTitle,
-		Current->Task->Settings.bCleanOutputDirectory);
+	auto TransformationResult = ProcessIntermediateDocs(IntermediateDir, Current->Task->Settings.OutputDirectory.Path, Current->Task->Settings.DocumentationTitle, Current->Task->Settings.bCleanOutputDirectory);
 	if (TransformationResult != EIntermediateProcessingResult::Success)
 	{
 		UE_LOG(LogKantanDocGen, Error, TEXT("Failed to transform xml to html!"));
 
 		auto Msg = FText::Format(LOCTEXT("DocConversionFailed", "Doc gen failed - {0}"),
-			TransformationResult == EIntermediateProcessingResult::DiskWriteFailure ? LOCTEXT("CouldNotWriteToOutput", "Could not write output, please clear output directory or enable 'Clean Output Directory' option") : LOCTEXT("GenericTransformationFailure", "Conversion failure"));
-		DocGenThreads::RunOnGameThread([this, Msg]
+			TransformationResult == EIntermediateProcessingResult::DiskWriteFailure
+				? LOCTEXT("CouldNotWriteToOutput", "Could not write output, please clear output directory or enable 'Clean Output Directory' option")
+				: LOCTEXT("GenericTransformationFailure", "Conversion failure"));
+		DocGenThreads::RunOnGameThread(
+			[this, Msg]
 			{
 				Current->Task->Notification->SetText(Msg);
 				Current->Task->Notification->SetCompletionState(SNotificationItem::CS_Fail);
 				Current->Task->Notification->ExpireAndFadeout();
 			});
-		//GEditor->PlayEditorSound(CompileSuccessSound);
+		// GEditor->PlayEditorSound(CompileSuccessSound);
 		return;
 	}
 
-	DocGenThreads::RunOnGameThread([this]
+	DocGenThreads::RunOnGameThread(
+		[this]
 		{
 			FString HyperlinkTarget = TEXT("file://") / FPaths::ConvertRelativePathToFull(Current->Task->Settings.OutputDirectory.Path / Current->Task->Settings.DocumentationTitle / TEXT("index.html"));
 			auto OnHyperlinkClicked = [HyperlinkTarget]
@@ -360,15 +364,16 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 				FPlatformProcess::LaunchURL(*HyperlinkTarget, nullptr, nullptr);
 			};
 
-			auto const HyperlinkText = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateLambda([]
-				{ return LOCTEXT("GeneratedDocsHyperlink", "View docs"); }));
+			auto const HyperlinkText = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateLambda(
+				[]
+				{
+					return LOCTEXT("GeneratedDocsHyperlink", "View docs");
+				}));
 			// @TODO: Bug in SNotificationItemImpl::SetHyperlink, ignores non-delegate attributes... LOCTEXT("GeneratedDocsHyperlink", "View docs");
 
 			Current->Task->Notification->SetText(LOCTEXT("DocConversionSuccessful", "Doc gen completed"));
 			Current->Task->Notification->SetCompletionState(SNotificationItem::CS_Success);
-			Current->Task->Notification->SetHyperlink(
-				FSimpleDelegate::CreateLambda(OnHyperlinkClicked),
-				HyperlinkText);
+			Current->Task->Notification->SetHyperlink(FSimpleDelegate::CreateLambda(OnHyperlinkClicked), HyperlinkText);
 			Current->Task->Notification->ExpireAndFadeout();
 		});
 
@@ -394,22 +399,9 @@ FDocGenTaskProcessor::EIntermediateProcessingResult FDocGenTaskProcessor::Proces
 	void* PipeWrite = nullptr;
 	verify(FPlatformProcess::CreatePipe(PipeRead, PipeWrite));
 
-	FString Args =
-		FString(TEXT("-outputdir=")) + TEXT("\"") + OutputDir + TEXT("\"")
-		+ TEXT(" -fromintermediate -intermediatedir=") + TEXT("\"") + IntermediateDir + TEXT("\"")
-		+ TEXT(" -name=") + DocTitle
-		+ (bCleanOutput ? TEXT(" -cleanoutput") : TEXT(""));
+	FString Args = FString(TEXT("-outputdir=")) + TEXT("\"") + OutputDir + TEXT("\"") + TEXT(" -fromintermediate -intermediatedir=") + TEXT("\"") + IntermediateDir + TEXT("\"") + TEXT(" -name=") + DocTitle + (bCleanOutput ? TEXT(" -cleanoutput") : TEXT(""));
 	UE_LOG(LogKantanDocGen, Log, TEXT("Invoking conversion tool: %s %s"), *DocGenToolPath, *Args);
-	FProcHandle Proc = FPlatformProcess::CreateProc(
-		*DocGenToolPath,
-		*Args,
-		true,
-		false,
-		false,
-		nullptr,
-		0,
-		nullptr,
-		PipeWrite);
+	FProcHandle Proc = FPlatformProcess::CreateProc(*DocGenToolPath, *Args, true, false, false, nullptr, 0, nullptr, PipeWrite);
 
 	int32 ReturnCode = 0;
 	if (Proc.IsValid())

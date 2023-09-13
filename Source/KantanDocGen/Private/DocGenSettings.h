@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #include "UObject/UnrealType.h"
 #include "Engine/EngineTypes.h"
 #include "UObject/ObjectMacros.h"

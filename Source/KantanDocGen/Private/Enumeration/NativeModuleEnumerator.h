@@ -6,13 +6,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #include "ISourceObjectEnumerator.h"
 
 class FNativeModuleEnumerator : public ISourceObjectEnumerator
 {
 public:
-	FNativeModuleEnumerator(
-		FName const& InModuleName);
+	FNativeModuleEnumerator(FName const& InModuleName);
 
 public:
 	virtual UObject* GetNext() override;

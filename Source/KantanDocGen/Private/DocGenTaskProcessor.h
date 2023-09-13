@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #include "DocGenSettings.h"
 
 #include "HAL/Runnable.h"
@@ -35,7 +37,7 @@ public:
 	virtual void Stop() override;
 
 protected:
-	void QueueTaskInternal(FKantanDocGenSettings const& Settings, FNotificationInfo& TaskInfo);
+	void QueueTaskInternal(FKantanDocGenSettings const& Settings, struct FNotificationInfo& TaskInfo);
 
 	struct FDocGenTask
 	{

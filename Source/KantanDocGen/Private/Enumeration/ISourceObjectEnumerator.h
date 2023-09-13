@@ -8,6 +8,8 @@
 
 #include "CoreMinimal.h"
 
+#include "CoreMinimal.h"
+
 class UObject;
 
 class ISourceObjectEnumerator
@@ -17,5 +19,7 @@ public:
 	virtual float EstimateProgress() const = 0;
 	virtual int32 EstimatedSize() const = 0;
 
-	virtual ~ISourceObjectEnumerator() {}
+	virtual ~ISourceObjectEnumerator()
+	{
+	}
 };

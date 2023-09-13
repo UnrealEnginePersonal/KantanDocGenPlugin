@@ -43,13 +43,7 @@ FNodeDocsGenerator::~FNodeDocsGenerator()
 bool FNodeDocsGenerator::GT_Init(FString const& InDocsTitle, FString const& InOutputDir, UClass* BlueprintContextClass)
 {
 	DummyBP = CastChecked<UBlueprint>(FKismetEditorUtilities::CreateBlueprint(
-		BlueprintContextClass,
-		::GetTransientPackage(),
-		NAME_None,
-		EBlueprintType::BPTYPE_Normal,
-		UBlueprint::StaticClass(),
-		UBlueprintGeneratedClass::StaticClass(),
-		NAME_None));
+		BlueprintContextClass, ::GetTransientPackage(), NAME_None, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), NAME_None));
 	if (!DummyBP.IsValid())
 	{
 		return false;
@@ -60,8 +54,7 @@ bool FNodeDocsGenerator::GT_Init(FString const& InDocsTitle, FString const& InOu
 	DummyBP->AddToRoot();
 	Graph->AddToRoot();
 
-	GraphPanel = SNew(SGraphPanel)
-					 .GraphObj(Graph.Get());
+	GraphPanel = SNew(SGraphPanel).GraphObj(Graph.Get());
 	// We want full detail for rendering, passing a super-high zoom value will guarantee the highest LOD.
 	GraphPanel->RestoreViewSettings(FVector2D(0, 0), 10.0f);
 
@@ -88,7 +81,7 @@ UK2Node* FNodeDocsGenerator::GT_DocumentSimpleObject(UObject* SourceObject, FNod
 		return nullptr;
 	}
 
-	//InitializeForSpawner supports "nullptr" spawner for simple classes (handled gracefully in IsSpawnerDocumentable)
+	// InitializeForSpawner supports "nullptr" spawner for simple classes (handled gracefully in IsSpawnerDocumentable)
 	return GT_InitializeForSpawner(nullptr, SourceObject, OutState);
 }
 
@@ -176,7 +169,8 @@ bool FNodeDocsGenerator::GenerateNodeImage(UEdGraphNode* Node, FNodeProcessingSt
 
 	FString NodeName = GetNodeDocId(Node);
 
-	bool bSuccess = DocGenThreads::RunOnGameThreadRetVal([&]
+	bool bSuccess = DocGenThreads::RunOnGameThreadRetVal(
+		[&]
 		{
 			auto NodeWidget = FNodeFactory::CreateNodeWidget(Node);
 			NodeWidget->SetOwner(GraphPanel.ToSharedRef());
@@ -683,13 +677,8 @@ bool FNodeDocsGenerator::IsSpawnerDocumentable(UBlueprintNodeSpawner* Spawner, b
 	if (nullptr == Spawner)
 		return false;
 	// Spawners of or deriving from the following classes will be excluded
-	static const TSubclassOf<UBlueprintNodeSpawner> ExcludedSpawnerClasses[] = {
-		UBlueprintVariableNodeSpawner::StaticClass(),
-		UBlueprintDelegateNodeSpawner::StaticClass(),
-		UBlueprintBoundNodeSpawner::StaticClass(),
-		UBlueprintComponentNodeSpawner::StaticClass(),
-		UBlueprintBoundEventNodeSpawner::StaticClass()
-	};
+	static const TSubclassOf<UBlueprintNodeSpawner> ExcludedSpawnerClasses[] = { UBlueprintVariableNodeSpawner::StaticClass(), UBlueprintDelegateNodeSpawner::StaticClass(),
+		UBlueprintBoundNodeSpawner::StaticClass(), UBlueprintComponentNodeSpawner::StaticClass(), UBlueprintBoundEventNodeSpawner::StaticClass() };
 
 	// Spawners of or deriving from the following classes will be excluded in a blueprint context
 	static const TSubclassOf<UBlueprintNodeSpawner> BlueprintOnlyExcludedSpawnerClasses[] = {
@@ -703,9 +692,7 @@ bool FNodeDocsGenerator::IsSpawnerDocumentable(UBlueprintNodeSpawner* Spawner, b
 	};
 
 	// Function spawners for functions with any of the following metadata tags will also be excluded
-	static const FName ExcludedFunctionMeta[] = {
-		TEXT("BlueprintAutocast")
-	};
+	static const FName ExcludedFunctionMeta[] = { TEXT("BlueprintAutocast") };
 
 	static const uint32 PermittedAccessSpecifiers = (FUNC_Public | FUNC_Protected);
 

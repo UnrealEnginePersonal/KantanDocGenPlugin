@@ -6,14 +6,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #include "ISourceObjectEnumerator.h"
 
 template<typename TChildEnum>
 class FCompositeEnumerator : public ISourceObjectEnumerator
 {
 public:
-	FCompositeEnumerator(
-		TArray<FName> const& InNames)
+	FCompositeEnumerator(TArray<FName> const& InNames)
 	{
 		CurEnumIndex = 0;
 		TotalSize = 0;

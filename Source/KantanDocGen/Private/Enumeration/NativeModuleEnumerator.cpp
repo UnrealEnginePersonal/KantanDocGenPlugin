@@ -12,8 +12,7 @@
 #include "UObject/UObjectIterator.h"
 #include "EdGraphSchema_K2.h"
 
-FNativeModuleEnumerator::FNativeModuleEnumerator(
-	FName const& InModuleName)
+FNativeModuleEnumerator::FNativeModuleEnumerator(FName const& InModuleName)
 {
 	CurIndex = 0;
 

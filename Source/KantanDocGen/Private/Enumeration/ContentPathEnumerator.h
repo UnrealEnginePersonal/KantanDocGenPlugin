@@ -6,14 +6,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #include "ISourceObjectEnumerator.h"
 #include "AssetRegistry/AssetData.h"
 
 class FContentPathEnumerator : public ISourceObjectEnumerator
 {
 public:
-	FContentPathEnumerator(
-		FName const& InPath);
+	FContentPathEnumerator(FName const& InPath);
 
 public:
 	virtual UObject* GetNext() override;

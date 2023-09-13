@@ -6,7 +6,6 @@
 
 #include "SKantanDocGenWidget.h"
 #include "DocGenSettings.h"
-#include "DocGenSettings.h"
 #include "KantanDocGenModule.h"
 
 #include "PropertyEditorModule.h"
@@ -31,23 +30,14 @@ void SKantanDocGenWidget::Construct(const SKantanDocGenWidget::FArguments& InArg
 
 	auto DetailView = PropertyEditorModule.CreateDetailView(DetailArgs);
 
-	ChildSlot
-		[SNew(SVerticalBox)
+	ChildSlot[SNew(SVerticalBox)
 
-			+ SVerticalBox::Slot()
-				  .AutoHeight()
-					  [DetailView]
+		+ SVerticalBox::Slot().AutoHeight()[DetailView]
 
-			+ SVerticalBox::Slot()
-				  .AutoHeight()
-					  [SNew(SHorizontalBox)
+		+ SVerticalBox::Slot().AutoHeight()[SNew(SHorizontalBox)
 
-						  + SHorizontalBox::Slot()
-								.AutoWidth()
-									[SNew(SButton)
-											.Text(LOCTEXT("GenButtonLabel", "Generate Docs"))
-											.IsEnabled(this, &SKantanDocGenWidget::ValidateSettingsForGeneration)
-											.OnClicked(this, &SKantanDocGenWidget::OnGenerateDocs)]]];
+			+ SHorizontalBox::Slot().AutoWidth()
+				  [SNew(SButton).Text(LOCTEXT("GenButtonLabel", "Generate Docs")).IsEnabled(this, &SKantanDocGenWidget::ValidateSettingsForGeneration).OnClicked(this, &SKantanDocGenWidget::OnGenerateDocs)]]];
 
 	auto Settings = UKantanDocGenSettingsObject::Get();
 	DetailView->SetObject(Settings);

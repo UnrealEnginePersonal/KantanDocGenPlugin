@@ -6,14 +6,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #include "Framework/Commands/Commands.h"
 
 class FKantanDocGenCommands : public TCommands<FKantanDocGenCommands>
 {
 public:
 	FKantanDocGenCommands()
-	: TCommands<FKantanDocGenCommands>(
-		"KantanDocGen", // Context name for fast lookup
+	: TCommands<FKantanDocGenCommands>("KantanDocGen", // Context name for fast lookup
 		NSLOCTEXT("Contexts", "KantanDocGen", "Kantan Doc Gen"), // Localized context name for displaying
 		NAME_None, // Parent
 		FAppStyle::GetAppStyleSetName() // Icon Style Set

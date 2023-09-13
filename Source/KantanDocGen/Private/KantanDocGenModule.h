@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #include "Modules/ModuleManager.h"
 #include "DocGenTaskProcessor.h" // TUniquePtr seems to need full definition...
 
@@ -20,17 +22,13 @@ public:
 	FKantanDocGenModule()
 	{
 	}
-
-public:
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
-public:
 	void GenerateDocs(struct FKantanDocGenSettings const& Settings);
 
 protected:
-	void ProcessIntermediateDocs(FString const& IntermediateDir, FString const& OutputDir, FString const& DocTitle, bool bCleanOutput);
 	void ShowDocGenUI();
 
 protected:
