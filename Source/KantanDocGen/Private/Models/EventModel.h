@@ -18,16 +18,27 @@ namespace Kds::DocGen::Models
 	struct FEventModel : FBaseModel
 	{
 	public:
-		const FString FullName;
-		const FString Image;
-		const bool bBlueprintCallable;
-		const bool bBlueprintEvent;
-		TArray<FPropertyModel> Parameters;
+		FString FullName;
+		FString DisplayName;
+		FString Image;
+		bool bBlueprintCallable;
+		bool bBlueprintPure;
+		bool bBlueprintEvent;
+		
+		TArray<TSharedPtr<FPropertyModel>> Parameters;
 
-		FEventModel(const FName InName, const FString& InFullName, const FString& InDescription, const FString& InImage,
-					const bool bInBlueprintCallable, const bool bInBlueprintEvent);
+		//TODO: Add These Properties
+		FString RawDescription;
+		FString RawShortDescription;
 
-		~FEventModel() = default;
+		FEventModel(const FName& InName, const FString& InFullName, const FString& InDescription,
+					   const FString& InImage, const bool bInBlueprintCallable, const bool bInBlueprintEvent);
+
+
+		virtual ~FEventModel() override = default;
+
+		virtual FJsonObject ToJson() const override;
+		
 
 		void AddParameter(const FPropertyModel&& Parameter);
 	};

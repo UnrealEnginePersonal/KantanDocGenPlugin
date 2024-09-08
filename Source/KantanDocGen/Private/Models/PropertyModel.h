@@ -19,13 +19,16 @@ namespace Kds::DocGen::Models
 	struct FPropertyModel final : FBaseModel
 	{
 	public:
+		FName DisplayName;
+		
 		FString RawDescription;
 		FString RawShortDescription;
 		FString Tooltip;
 		FString CPPType;
-		FString CPPForwardDeclaration;
+		FString CPPTypeForwardDeclaration;
 		FString Type;
 		FString DisplayType;
+		
 
 	public:
 		/**
@@ -36,6 +39,8 @@ namespace Kds::DocGen::Models
 		 */
 		FPropertyModel(const FName& InDisplayName, const FString& InDescription);
 
-		~FPropertyModel() = default;
+		virtual ~FPropertyModel() override = default;
+
+		virtual FJsonObject ToJson() const override;
 	};
 } // namespace Kds::DocGen::Models

@@ -23,4 +23,13 @@ namespace Kds::DocGen::Models
 	{
 		Modules.Add(MakeShared<FModuleDescriptor>(Module));
 	}
+	
+	FJsonObject FPluginModel::ToJson() const
+	{
+		FJsonObject OutJson;
+		OutJson.SetStringField("ModuleName", Name.ToString());
+		OutJson.SetStringField("ModuleSourcePath", ContentPath.Path);
+		OutJson.SetStringField("ModuleType", "Plugin");
+		return OutJson;
+	}
 } // namespace Kds::DocGen::Models

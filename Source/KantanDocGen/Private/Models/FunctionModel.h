@@ -21,14 +21,22 @@ namespace Kds::DocGen::Models
 		FString DisplayName;
 		FString Image;
 		bool bBlueprintCallable;
+		bool bBlueprintPure;
 		bool bBlueprintEvent;
-		TArray<FPropertyModel> Parameters;
+		
+		TArray<TSharedPtr<FPropertyModel>> Parameters;
+
+		//TODO: Add These Properties
+		FString RawDescription;
+		FString RawShortDescription;
 
 		FFunctionModel(const FName& InName, const FString& InFullName, const FString& InDescription,
 					   const FString& InImage, const bool bInBlueprintCallable, const bool bInBlueprintEvent);
 
-		~FFunctionModel() = default;
+		virtual ~FFunctionModel() override = default;
 
+		virtual FJsonObject ToJson() const override;
+		
 		void AddParameter(const FPropertyModel& Parameter);
 	};
 } // namespace Kds::DocGen::Models

@@ -11,6 +11,8 @@
 #include "Writer.h"
 
 #include "Models/ClassModel.h"
+#include "KantanDocGenLog.h"
+
 
 namespace Kds::DocGen
 {
@@ -41,7 +43,7 @@ namespace Kds::DocGen
 	{
 		return OutputDir;
 	}
-
+	
 	void FWriter::Save()
 	{
 		if (ClassDocsMap.Num() == 0)
@@ -49,20 +51,41 @@ namespace Kds::DocGen
 			UE_LOG(LogTemp, Warning, TEXT("No classes to save"));
 			return;
 		}
-
+		FJsonObject JsonObject;		
 		const FString ModuleName = ClassDocsMap.begin().Value()->DocsName;
-		// TODO: Add module source path
 		const FString ModuleSourcePath = "TODO";
-		// TODO: Add module type
 		const FString ModuleType = "TODO";
 
+		JsonObject.SetStringField("ModuleName", ModuleName);
+		JsonObject.SetStringField("ModuleSourcePath", ModuleSourcePath);
+		JsonObject.SetStringField("ModuleType", ModuleType);
+
+		TArray<TSharedPtr<FJsonValue>> ClassesArray;
+		
 		for (TTuple<TWeakObjectPtr<UClass>, TSharedPtr<Models::FClassModel>> Pair : ClassDocsMap)
 		{
 			const TSharedPtr<Models::FClassModel>& ClassModel = Pair.Value;
-			const UClass* Class = Pair.Key.Get();
+			const TSharedPtr<FJsonObject> ClassJsonObject = MakeShared<FJsonObject>(ClassModel->ToJson());			
+			ClassesArray.Add(MakeShared<FJsonValueObject>(ClassJsonObject));
+		}
+		
+		// Adding classes array to the main JsonObject
+		JsonObject.SetArrayField("Classes", ClassesArray);
+		
+		// Convert FJsonObject to a JSON string
+		FString OutputString;
+		const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
+		FJsonSerializer::Serialize(MakeShared<FJsonObject>(JsonObject), Writer);
 
-			UE_LOG(LogTemp, Warning, TEXT("Saving Class: %s"), *Class->GetName());
-			UE_LOG(LogTemp, Warning, TEXT("Saving ClassModel: %s"), *ClassModel->Name.ToString());
+		// Write JSON string to file
+		if (const FString OutputPath = FPaths::Combine(OutputDir, ModuleName + ".json");
+			FFileHelper::SaveStringToFile(OutputString, *OutputPath))
+		{
+			UE_LOG(LogKantanDocGen, Log, TEXT("Successfully saved JSON file: %s"), *OutputPath);
+		}
+		else
+		{
+			UE_LOG(LogKantanDocGen, Error, TEXT("Failed to save JSON file: %s"), *OutputPath);
 		}
 	}
 

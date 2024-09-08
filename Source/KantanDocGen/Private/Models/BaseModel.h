@@ -35,6 +35,8 @@ namespace Kds::DocGen::Models
 		 */
 		FBaseModel(const FName& InName, const FString& InDescription);
 
-		~FBaseModel() = default;
+		virtual ~FBaseModel() = default;
+
+		virtual FJsonObject ToJson() const = 0;
 	};
 } // namespace Kds::DocGen::Models

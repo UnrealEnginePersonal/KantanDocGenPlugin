@@ -30,12 +30,16 @@ namespace Kds::DocGen::Models
 
 		const FString DocsName;
 		FString IncludePath;
-		FString ClassTree;		
-	private:
-		const FString Id;
+		FString ClassTree;
+		
 		
 		TArray<TSharedPtr<FPropertyModel>> Properties;
 		TArray<TSharedPtr<FEventModel>> Events;
 		TArray<TSharedPtr<FFunctionModel>> Functions;
+
+		virtual FJsonObject ToJson() const override;
+		
+	private:
+		const FString Id;
 	};
 } // namespace Kds::DocGen::Models

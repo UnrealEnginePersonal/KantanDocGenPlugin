@@ -19,12 +19,17 @@ namespace Kds::DocGen::Models
 	struct FPluginModel final :  FBaseModel
 	{
 	public:
-		FPluginModel(const FName& InName, const FString& InDescription);		
+		FPluginModel(const FName& InName, const FString& InDescription);
+
+		virtual ~FPluginModel() override = default;
+		
 	public:
 		const FDirectoryPath& GetPath() const;
 		const TArray<TSharedPtr<FModuleDescriptor>>& GetModules() const;
 		
 		void AddModule(const FModuleDescriptor& Module);
+
+		virtual FJsonObject ToJson() const override;
 		
 	private:
 		const FDirectoryPath ContentPath;
