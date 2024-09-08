@@ -1,8 +1,8 @@
 ﻿#include "ClassModel.h"
-
 #include "PropertyModel.h"
 #include "EventModel.h"
 #include "FunctionModel.h"
+
 
 namespace Kds::DocGen::Models
 {
@@ -13,24 +13,20 @@ namespace Kds::DocGen::Models
 		Functions()
 	{
 	}
-	FClassModel::~FClassModel()
-	{
-		UE_LOG(LogTemp, Warning, TEXT("FClassModel::~FClassModel()"));
-	}
 
 	void FClassModel::AddProperty(const FPropertyModel& Property)
 	{
-		Properties.Add(MakeUnique<FPropertyModel>(Property));
+		Properties.Add(MakeShared<FPropertyModel>(Property));
 	}
 
 	void FClassModel::AddEvent(const FEventModel& Event)
 	{
-		Events.Add(MakeUnique<FEventModel>(Event));
+		Events.Add(MakeShared<FEventModel>(Event));
 	}
 
 	void FClassModel::AddFunction(const FFunctionModel& Function)
 	{
-		Functions.Add(MakeUnique<FFunctionModel>(Function));
+		Functions.Add(MakeShared<FFunctionModel>(Function));
 	}
 
 } // namespace Kds::DocGen::Models

@@ -36,9 +36,6 @@ namespace Kds::DocGen::Models
 		 */
 		FPropertyModel(const FName& InDisplayName, const FString& InDescription);
 
-		/**
-		 * @brief Destructor
-		 */
-		virtual ~FPropertyModel() override = default;
+		~FPropertyModel() = default;
 	};
 } // namespace Kds::DocGen::Models

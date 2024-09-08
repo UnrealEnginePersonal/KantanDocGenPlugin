@@ -44,9 +44,9 @@
 #include "Utils/ClassUtils.h"
 #include "Models/PropertyModel.h"
 
-using namespace KantanDocGen::Utils;
-using namespace Kds::DocGen::Models;
 using namespace Kds::DocGen;
+using namespace Kds::DocGen::Models;
+using namespace Kds::DocGen::Utils;
 
 FNodeDocsGenerator::FNodeProcessingState::FNodeProcessingState() :
 	ClassModel(nullptr), ClassDocsPath(), RelImageBasePath(), ImageFilename()

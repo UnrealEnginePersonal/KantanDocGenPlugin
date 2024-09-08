@@ -10,10 +10,7 @@ namespace Kds::DocGen::Models
 		bBlueprintCallable(bInBlueprintCallable), bBlueprintEvent(bInBlueprintEvent)
 	{
 	}
-	FFunctionModel::~FFunctionModel()
-	{
-		// Empty
-	}
+	
 	void FFunctionModel::AddParameter(const FPropertyModel& Parameter)
 	{
 		Parameters.Add(Parameter);

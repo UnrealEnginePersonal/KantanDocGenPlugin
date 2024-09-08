@@ -70,7 +70,7 @@ protected:
 	};
 
 protected:
-	void ProcessTask(TSharedPtr<FDocGenTask> InTask);
+	void ProcessTask(const TSharedPtr<FDocGenTask>& InTask);
 
 	enum EIntermediateProcessingResult : uint8
 	{

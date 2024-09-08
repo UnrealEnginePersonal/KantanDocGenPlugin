@@ -22,8 +22,7 @@ namespace Kds::DocGen::Models
 	{
 		FClassModel(const FString& InDocsName, const FString& InId, const FName& InDisplayName,
 					const FString& InDescription);
-
-		virtual ~FClassModel() override;
+		~FClassModel() = default;
 		
 		void AddProperty(const FPropertyModel& Property);
 		void AddEvent(const FEventModel& Event);
@@ -35,8 +34,8 @@ namespace Kds::DocGen::Models
 	private:
 		const FString Id;
 		
-		TArray<TUniquePtr<FPropertyModel>> Properties;
-		TArray<TUniquePtr<FEventModel>> Events;
-		TArray<TUniquePtr<FFunctionModel>> Functions;
+		TArray<TSharedPtr<FPropertyModel>> Properties;
+		TArray<TSharedPtr<FEventModel>> Events;
+		TArray<TSharedPtr<FFunctionModel>> Functions;
 	};
 } // namespace Kds::DocGen::Models

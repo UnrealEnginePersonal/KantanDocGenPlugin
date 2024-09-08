@@ -11,7 +11,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Kds_Log.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogKantanDocGen, Log, All);
 

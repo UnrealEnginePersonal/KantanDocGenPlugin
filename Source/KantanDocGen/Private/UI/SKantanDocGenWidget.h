@@ -26,8 +26,12 @@ public:
 	void Construct(const FArguments& InArgs);
 
 protected:
-	bool ValidateSettingsForGeneration() const;
+	
 	FReply OnGenerateDocs();
 
 protected:
+
+private:
+	static bool ValidateSettingsForGeneration();
+	static TSharedRef<SWidget> GeneratePluginsAndModulesCheckboxes(TMap<FName, bool>& AvailablePluginsAndModules);
 };

@@ -35,9 +35,6 @@ namespace Kds::DocGen::Models
 		 */
 		FBaseModel(const FName& InName, const FString& InDescription);
 
-		/**
-		 * @brief Destructor
-		 */
-		virtual ~FBaseModel();
+		~FBaseModel() = default;
 	};
 } // namespace Kds::DocGen::Models

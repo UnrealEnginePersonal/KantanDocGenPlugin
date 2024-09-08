@@ -10,13 +10,16 @@
 
 #pragma once
 
-namespace KantanDocGen::Utils
+namespace Kds::DocGen
 {
-	class FClassUtils
+	namespace Utils
 	{
-	public:
-		static FString GetClassDescription(const UClass* Class);
-		static FString GetClassDocName(const UClass* Class);
-		static FString GetNodeDescription(UEdGraphNode* Node);
-	};
+		class FClassUtils
+		{
+		public:
+			static FString GetClassDescription(const UClass* Class);
+			static FString GetClassDocName(const UClass* Class);
+			static FString GetNodeDescription(UEdGraphNode* Node);
+		};
+	}
 }

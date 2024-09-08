@@ -18,6 +18,7 @@
 #include "GameFramework/Actor.h"
 #include "Misc/Paths.h"
 #include "Misc/App.h"
+
 #include "DocGenSettings.generated.h"
 
 UENUM()
@@ -48,18 +49,18 @@ public:
 
 	/** Title of the generated documentation (also used for output dir : "OutputDirectory/DocumentationTitle/<doc>" */
 	UPROPERTY(EditAnywhere, Category = "Documentation",
-		Meta = (EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
+			  Meta = (EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
 	FString DocumentationTitle;
 
 	/** List of C++ modules in which to search for blueprint-exposed classes to document. */
 	UPROPERTY(EditAnywhere, Category = "Class Search",
-		Meta = (Tooltip = "Raw module names (Do not prefix with '/Script').", EditCondition =
-			"GenerationMethod==EGenMethod::Manual", EditConditionHides))
+			  Meta = (Tooltip = "Raw module names (Do not prefix with '/Script').",
+					  EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
 	TArray<FName> NativeModules;
 
 	/** List of paths in which to search for blueprints to document. */
 	UPROPERTY(EditAnywhere, Category = "Class Search",
-		Meta = (ContentDir, EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
+			  Meta = (ContentDir, EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
 	TArray<FDirectoryPath> ContentPaths;
 
 	UPROPERTY(EditAnywhere, Category = "Output")
@@ -72,7 +73,8 @@ public:
 	TSubclassOf<UObject> BlueprintContextClass;
 
 	UPROPERTY(EditAnywhere, Category = "Output")
-	bool bCleanOutputDirectory;
+	bool bCleanOutputDirectory;	
+	TMap<FName, bool> AvailablePluginsAndModules;
 
 public:
 	FKantanDocGenSettings()
@@ -82,12 +84,22 @@ public:
 		ExportMethod = EExportMethod::XML;
 	}
 
+	TArray<FName> GetEnabledModules() const
+	{
+		TArray<FName> EnabledModules;
+		for (const auto& PluginModule : AvailablePluginsAndModules)
+		{
+			if (PluginModule.Value)
+			{
+				EnabledModules.Add(PluginModule.Key);
+			}
+		}
+		return EnabledModules;
+	}
+
 	bool HasAnySources() const
 	{
-		return
-			GenerationMethod != EGenMethod::Manual ||
-			NativeModules.Num() > 0 ||
-			ContentPaths.Num() > 0;
+		return GenerationMethod != EGenMethod::Manual || NativeModules.Num() > 0 || ContentPaths.Num() > 0;
 	}
 };
 
@@ -114,23 +126,7 @@ public:
 		return DefaultSettings;
 	}
 
-	static void InitDefaults(UKantanDocGenSettingsObject* CDO)
-	{
-		if (CDO->Settings.DocumentationTitle.IsEmpty())
-		{
-			CDO->Settings.DocumentationTitle = FApp::GetProjectName();
-		}
-
-		if (CDO->Settings.OutputDirectory.Path.IsEmpty())
-		{
-			CDO->Settings.OutputDirectory.Path = FPaths::ProjectSavedDir() / TEXT("KantanDocGen");
-		}
-
-		if (CDO->Settings.BlueprintContextClass == nullptr)
-		{
-			CDO->Settings.BlueprintContextClass = AActor::StaticClass();
-		}
-	}
+	static void InitDefaults(UKantanDocGenSettingsObject* CDO);
 
 public:
 	UPROPERTY(EditAnywhere, Config, Category = "Kantan DocGen", Meta = (ShowOnlyInnerProperties))

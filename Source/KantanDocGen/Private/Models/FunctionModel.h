@@ -27,7 +27,7 @@ namespace Kds::DocGen::Models
 		FFunctionModel(const FName& InName, const FString& InFullName, const FString& InDescription,
 					   const FString& InImage, const bool bInBlueprintCallable, const bool bInBlueprintEvent);
 
-		virtual ~FFunctionModel() override;
+		~FFunctionModel() = default;
 
 		void AddParameter(const FPropertyModel& Parameter);
 	};

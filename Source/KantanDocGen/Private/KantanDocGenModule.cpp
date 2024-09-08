@@ -14,6 +14,7 @@
 #include "DocGenSettings.h"
 #include "DocGenTaskProcessor.h"
 #include "UI/SKantanDocGenWidget.h"
+#include "Utils/ModuleUtils.h"
 
 #include "HAL/IConsoleManager.h"
 #include "Interfaces/IMainFrameModule.h"
@@ -22,11 +23,14 @@
 #include "Framework/Application/SlateApplication.h"
 #include "HAL/RunnableThread.h"
 
+
+
 #define LOCTEXT_NAMESPACE "KantanDocGen"
 
 IMPLEMENT_MODULE(FKantanDocGenModule, KantanDocGen)
 
 DEFINE_LOG_CATEGORY(LogKantanDocGen);
+using namespace Kds::DocGen::Utils;
 
 void FKantanDocGenModule::StartupModule()
 {
@@ -57,6 +61,8 @@ void FKantanDocGenModule::StartupModule()
 	MenuExtender->AddMenuExtension(TEXT("FileProject"), EExtensionHook::After, UICommands.ToSharedRef(),
 	                               FMenuExtensionDelegate::CreateLambda(AddMenuExtension));
 	LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MenuExtender);
+
+	FModuleUtils::Get();
 }
 
 void FKantanDocGenModule::ShutdownModule()

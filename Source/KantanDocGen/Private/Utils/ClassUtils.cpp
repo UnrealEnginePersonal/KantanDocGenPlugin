@@ -12,7 +12,7 @@
 
 #include "Kismet2/BlueprintEditorUtils.h"
 
-namespace KantanDocGen::Utils
+namespace Kds::DocGen::Utils
 {
 	FString FClassUtils::GetClassDescription(const UClass* Class)
 	{

@@ -9,6 +9,7 @@
 // **/
 
 #include "DocGenTaskProcessor.h"
+
 #include "KantanDocGenLog.h"
 #include "NodeDocsGenerator.h"
 #include "BlueprintActionDatabase.h"
@@ -27,12 +28,22 @@
 #include "HAL/PlatformProcess.h"
 #include "Interfaces/IProjectManager.h"
 #include "ProjectDescriptor.h"
+#include "Models/PluginModel.h"
+#include "Utils/ModuleUtils.h"
+
 
 #define LOCTEXT_NAMESPACE "KantanDocGen"
 
+using namespace Kds::DocGen::Models;
+
+inline static void Log(const FString& Msg, const FString& Prefix)
+{
+	UE_LOG(LogKantanDocGen, Log, TEXT("{%s} %s"), *Prefix, *Msg);
+}
+
 inline static void Log(const FString& Msg)
 {
-	UE_LOG(LogKantanDocGen, Log, TEXT("{FDocGenTaskProcessor} %s"), *Msg);
+	Log(Msg, TEXT("FDocGenTaskProcessor"));
 }
 
 inline static void Warn(const FString& Msg)
@@ -51,12 +62,71 @@ FDocGenTaskProcessor::FDocGenTaskProcessor()
 	bTerminationRequest = false;
 }
 
-FDocGenTaskProcessor::~FDocGenTaskProcessor()
-{
-}
+FDocGenTaskProcessor::~FDocGenTaskProcessor() {}
 
 void FDocGenTaskProcessor::QueueTask(const FKantanDocGenSettings& Settings)
 {
+
+	TArray<FKantanDocGenSettings> SettingsList;
+
+	if (EGenMethod::Manual == Settings.GenerationMethod)
+	{
+		SettingsList.Add(Settings);
+	}
+	else
+	{
+		// Settings may contain modules & paths from the UI before GenerationMethod being switched to something
+		// "automatic" let's clear this out
+		FKantanDocGenSettings VanillaSetting = Settings;
+		VanillaSetting.NativeModules.Empty();
+		VanillaSetting.ContentPaths.Empty();
+
+		const FProjectDescriptor* const CurrentProject = IProjectManager::Get().GetCurrentProject();
+
+		check(CurrentProject);
+		
+		// Add plugins
+		if (EGenMethod::Plugins == Settings.GenerationMethod
+			|| EGenMethod::ProjectAndPlugins == Settings.GenerationMethod)
+		{
+			Log(TEXT("Adding plugins"));
+			for (const auto Plugin : Kds::DocGen::Utils::FModuleUtils::Get().GetPlugins())
+			{
+				FKantanDocGenSettings CustomSetting = VanillaSetting;
+				CustomSetting.DocumentationTitle = Plugin->Name.ToString();
+				CustomSetting.ContentPaths.Add(Plugin->GetPath());
+
+				for (const TSharedPtr<FModuleDescriptor> PluginModule : Plugin->GetModules())
+				{
+					const FString& ModuleName = PluginModule->Name.ToString();
+					const FString& PluginName = Plugin->Name.ToString();
+
+					if (VanillaSetting.AvailablePluginsAndModules.Find(PluginModule->Name) == nullptr)
+					{
+						Log(FString::Printf(TEXT("Skipping plugin %s it is disabled for module %s"), *PluginName,
+											*ModuleName));
+						continue;
+					}
+
+					if (VanillaSetting.AvailablePluginsAndModules.FindChecked(PluginModule->Name))
+					{
+						Log(FString::Printf(TEXT("Adding module %s from plugin %s"), *ModuleName, *PluginName));
+						CustomSetting.NativeModules.Add(PluginModule->Name);
+					}
+					else
+					{
+						Log(FString::Printf(TEXT("Skipping module %s from plugin %s"), *ModuleName, *PluginName));
+					}
+				}
+
+				if (CustomSetting.NativeModules.Num() > 0)
+				{
+					SettingsList.Add(CustomSetting);
+				}
+			}
+		}
+	}
+
 	FNotificationInfo TaskInfo(FText::AsCultureInvariant("Generating doc for " + Settings.DocumentationTitle));
 	TaskInfo.Image = nullptr;
 	TaskInfo.FadeInDuration = 0.2f;
@@ -67,82 +137,10 @@ void FDocGenTaskProcessor::QueueTask(const FKantanDocGenSettings& Settings)
 	TaskInfo.bUseLargeFont = true;
 	TaskInfo.bFireAndForget = false;
 	TaskInfo.bAllowThrottleWhenFrameRateIsLow = false;
-
-	TArray<FKantanDocGenSettings> SettingsList;
-
-	if (EGenMethod::Manual == Settings.GenerationMethod)
-	{
-		SettingsList.Add(Settings);
-	}
-	else
-	{
-		// Settings may contains mdoules & paths from the UI before GenerationMethod being switched to something "automatic" let's clear this out
-		FKantanDocGenSettings VanillaSetting = Settings;
-		VanillaSetting.NativeModules.Empty();
-		VanillaSetting.ContentPaths.Empty();
-
-		const FProjectDescriptor* const CurrentProject = IProjectManager::Get().GetCurrentProject();
-
-		check(CurrentProject);
-
-		Log(FString::Printf(TEXT("Current project: %s"), *CurrentProject->Modules[0].Name.ToString()));
-
-		// Add Current project modules & content
-		if (EGenMethod::Project == Settings.GenerationMethod ||
-			EGenMethod::ProjectAndPlugins == Settings.GenerationMethod)
-		{
-			FKantanDocGenSettings CustomSetting = VanillaSetting;
-			CustomSetting.DocumentationTitle = FApp::GetProjectName();
-			Log(FString::Printf(TEXT("Adding project %s"), *CustomSetting.DocumentationTitle));
-
-			for (const FModuleDescriptor& ModuleInfo : CurrentProject->Modules)
-			{
-				Log(FString::Printf(TEXT("Adding module %s"), *ModuleInfo.Name.ToString()));
-				CustomSetting.NativeModules.Add(ModuleInfo.Name);
-			}
-
-			FDirectoryPath P;
-			P.Path = FPaths::ProjectContentDir();
-			CustomSetting.ContentPaths.Add(P);
-
-			SettingsList.Add(CustomSetting);
-		}
-		if (EGenMethod::Plugins == Settings.GenerationMethod ||
-			EGenMethod::ProjectAndPlugins == Settings.GenerationMethod)
-		{
-			Log(TEXT("Adding plugins"));
-			// Resolve out the paths for each module and add the cut-down into to our output array
-			for (const auto& Plugin : IPluginManager::Get().GetDiscoveredPlugins())
-			{
-				Log(FString::Printf(TEXT("Adding plugin %s"), *Plugin->GetName()));
-				// Only get plugins that are a part of the game project
-				if (Plugin->GetLoadedFrom() == EPluginLoadedFrom::Project)
-				{
-					FKantanDocGenSettings CustomSetting = VanillaSetting;
-					CustomSetting.DocumentationTitle = Plugin->GetName();
-					FDirectoryPath P;
-					P.Path = "/" + Plugin->GetName();
-					CustomSetting.ContentPaths.Add(P);
-
-					for (const FModuleDescriptor& PluginModule : Plugin->GetDescriptor().Modules)
-					{
-						Log(FString::Printf(
-							TEXT("Adding module %s from plugin %s"), *PluginModule.Name.ToString(),
-							*Plugin->GetName()));
-						CustomSetting.NativeModules.Add(PluginModule.Name);
-					}
-					SettingsList.Add(CustomSetting);
-				}
-			}
-		}
-	}
-
-	Log(FString::Printf(TEXT("Queueing %d tasks"), SettingsList.Num()));
-
+	
 	// Queue generation for every requested settings
 	for (const FKantanDocGenSettings& Setting : SettingsList)
 	{
-		Log(FString::Printf(TEXT("Queueing task for %s"), *Setting.DocumentationTitle));
 		TaskInfo.Text = FText::AsCultureInvariant("Generating doc for " + Setting.DocumentationTitle);
 		QueueTaskInternal(Setting, TaskInfo);
 	}
@@ -189,7 +187,7 @@ void FDocGenTaskProcessor::Stop()
 	bTerminationRequest = true;
 }
 
-void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
+void FDocGenTaskProcessor::ProcessTask(const TSharedPtr<FDocGenTask>& InTask)
 {
 	/********** Lambdas for the game thread to execute **********/
 	auto GameThread_InitDocGen = [this](const FString& DocTitle, const FString& IntermediateDir) -> bool
@@ -201,14 +199,14 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 		return Current->DocGen->GT_Init(DocTitle, IntermediateDir, Current->Task->Settings.BlueprintContextClass);
 	};
 
-	TFunction<void()> GameThread_EnqueueEnumerators = [this]() -> void
+	const TFunction<void()> GameThread_EnqueueEnumerators = [this]() -> void
 	{
 		/*UE_LOG(LogKantanDocGen, Log, TEXT("Enqueuing enumerators"));*/
 		Log(TEXT("Enqueuing enumerators"));
+
 		// @TODO: Specific class enumerator
-		Current->Enumerators.Enqueue(MakeShared<FCompositeEnumerator<FNativeModuleEnumerator>>(
-			Current->Task->Settings.NativeModules)
-			);
+		Current->Enumerators.Enqueue(
+			MakeShared<FCompositeEnumerator<FNativeModuleEnumerator>>(Current->Task->Settings.NativeModules));
 
 		TArray<FName> ContentPackagePaths;
 		for (const auto& [Path] : Current->Task->Settings.ContentPaths)
@@ -220,7 +218,6 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 
 	auto GameThread_EnumerateNextObject = [this]() -> bool
 	{
-		/*UE_LOG(LogKantanDocGen, Log, TEXT("Enumerating next object"));*/
 		Log(TEXT("Enumerating next object"));
 		// We've just come in from another thread, check the source object is still around
 		Current->SourceObject.Reset();
@@ -264,7 +261,8 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 		return false;
 	};
 
-	auto GameThread_EnumerateNextNode = [this](FNodeDocsGenerator::FNodeProcessingState& OutState) -> UK2Node* {
+	auto GameThread_EnumerateNextNode = [this](FNodeDocsGenerator::FNodeProcessingState& OutState) -> UK2Node*
+	{
 		Log(TEXT("Enumerating next node, trying to document object"));
 		// We've just come in from another thread, check the source object is still around
 		if (!Current->SourceObject.IsValid())
@@ -290,13 +288,13 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 			if (Spawner.IsValid())
 			{
 				// See if we can document this spawner
-				const auto K2_NodeInst = Current->DocGen->GT_InitializeForSpawner(
-					Spawner.Get(), Current->SourceObject.Get(), OutState);
+				const auto K2_NodeInst =
+					Current->DocGen->GT_InitializeForSpawner(Spawner.Get(), Current->SourceObject.Get(), OutState);
 
 				if (K2_NodeInst == nullptr)
 				{
-					Log(FString::Printf(
-						TEXT("Failed to spawn node for spawner %s continue to the next one"), *Spawner->GetName()));
+					Log(FString::Printf(TEXT("Failed to spawn node for spawner %s continue to the next one"),
+										*Spawner->GetName()));
 					continue;
 				}
 
@@ -313,13 +311,12 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 
 	auto GameThread_FinalizeDocs = [this](const FString& OutputPath) -> bool
 	{
-		/*UE_LOG(LogKantanDocGen, Log, TEXT("Finalizing docs"));*/
+		
 		Log(TEXT("Finalizing docs"));
 		const bool Result = Current->DocGen->GT_Finalize(OutputPath);
 
 		if (!Result)
 		{
-			/*UE_LOG(LogKantanDocGen, Error, TEXT("Failed to finalize docs!"));*/
 			Error(FString("Failed to finalize docs! for ") + OutputPath);
 			Current->Task->Notification->SetText(LOCTEXT("DocFinalizationFailed", "Doc gen failed"));
 			Current->Task->Notification->SetCompletionState(SNotificationItem::CS_Fail);
@@ -339,10 +336,10 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 
 	DocGenThreads::RunOnGameThread(GameThread_EnqueueEnumerators);
 
-	//INITIALIZATION
+	// INITIALIZATION
 	Current->DocGen = MakeUnique<FNodeDocsGenerator>();
-	if (!DocGenThreads::RunOnGameThreadRetVal(
-	GameThread_InitDocGen, Current->Task->Settings.DocumentationTitle,IntermediateDir))
+	if (!DocGenThreads::RunOnGameThreadRetVal(GameThread_InitDocGen, Current->Task->Settings.DocumentationTitle,
+											  IntermediateDir))
 	{
 		UE_LOG(LogKantanDocGen, Error, TEXT("Failed to initialize doc generator!"));
 		return;
@@ -353,7 +350,7 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 	while (Current->Enumerators.Dequeue(Current->CurrentEnumerator))
 	{
 		while (DocGenThreads::RunOnGameThreadRetVal(GameThread_EnumerateNextObject))
-		// Game thread: Enumerate next Obj, get spawner list for Obj, store as array of weak ptrs.
+		// Game thread: Enumerate next Obj, get spawner list for Obj, store as array of weak pointers.
 		{
 			if (bTerminationRequest)
 			{
@@ -362,9 +359,10 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 
 			FNodeDocsGenerator::FNodeProcessingState NodeState;
 			while (const auto NodeInst = DocGenThreads::RunOnGameThreadRetVal(GameThread_EnumerateNextNode, NodeState))
-			// Game thread: Get next still valid spawner, spawn node, add to root, return it)
+			// Game thread: Get next still valid spawner, spawn node, add to root, return it.
 			{
-				// NodeInst should hopefully not reference anything except stuff we control (ie graph object), and it's rooted so should be safe to deal with here
+				// NodeInst should hopefully not reference anything except stuff we control (ie graph object), and it's
+				// rooted so should be safe to deal with here
 
 				// Generate image
 				if (!Current->DocGen->GenerateNodeImage(NodeInst, NodeState))
@@ -408,23 +406,22 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 	}
 
 	DocGenThreads::RunOnGameThread(
-		[this]
-		{
-			Current->Task->Notification->SetText(LOCTEXT("DocConversionInProgress", "Converting docs"));
-		});
+		[this] { Current->Task->Notification->SetText(LOCTEXT("DocConversionInProgress", "Converting docs")); });
 
 	auto TransformationResult = ProcessIntermediateDocs(IntermediateDir, Current->Task->Settings.OutputDirectory.Path,
-	                                                    Current->Task->Settings.DocumentationTitle,
-	                                                    Current->Task->Settings.bCleanOutputDirectory);
+														Current->Task->Settings.DocumentationTitle,
+														Current->Task->Settings.bCleanOutputDirectory);
 	if (TransformationResult != EIntermediateProcessingResult::Success)
 	{
 		UE_LOG(LogKantanDocGen, Error, TEXT("Failed to transform xml to html!"));
 
-		auto Msg = FText::Format(LOCTEXT("DocConversionFailed", "Doc gen failed - {0}"),
-		                         TransformationResult == EIntermediateProcessingResult::DiskWriteFailure
-			                         ? LOCTEXT("CouldNotWriteToOutput",
-			                                   "Could not write output, please clear output directory or enable 'Clean Output Directory' option")
-			                         : LOCTEXT("GenericTransformationFailure", "Conversion failure"));
+		auto Msg = FText::Format(
+			LOCTEXT("DocConversionFailed", "Doc gen failed - {0}"),
+			TransformationResult == EIntermediateProcessingResult::DiskWriteFailure
+				? LOCTEXT(
+					  "CouldNotWriteToOutput",
+					  "Could not write output, please clear output directory or enable 'Clean Output Directory' option")
+				: LOCTEXT("GenericTransformationFailure", "Conversion failure"));
 		DocGenThreads::RunOnGameThread(
 			[this, Msg]
 			{
@@ -438,9 +435,9 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 	DocGenThreads::RunOnGameThread(
 		[this]
 		{
-			FString HyperlinkTarget = TEXT("file://") / FPaths::ConvertRelativePathToFull(
-				Current->Task->Settings.OutputDirectory.Path / Current->Task->Settings.DocumentationTitle / TEXT(
-					"index.html"));
+			FString HyperlinkTarget = TEXT("file://")
+				/ FPaths::ConvertRelativePathToFull(Current->Task->Settings.OutputDirectory.Path
+													/ Current->Task->Settings.DocumentationTitle / TEXT("index.html"));
 			auto OnHyperlinkClicked = [HyperlinkTarget]
 			{
 				UE_LOG(LogKantanDocGen, Log, TEXT("Invoking hyperlink"));
@@ -448,14 +445,11 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 			};
 
 			const auto HyperlinkText = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateLambda(
-				[]
-				{
-					return LOCTEXT("GeneratedDocsHyperlink", "View docs");
-				}));
+				[] { return LOCTEXT("GeneratedDocsHyperlink", "View docs"); }));
 
 
-			// @TODO: Bug in SNotificationItemImpl::SetHyperlink, ignores non-delegate attributes... LOCTEXT("GeneratedDocsHyperlink", "View docs");
-
+			// @TODO: Bug in SNotificationItemImpl::SetHyperlink, ignores non-delegate attributes...
+			// LOCTEXT("GeneratedDocsHyperlink", "View docs");
 			Current->Task->Notification->SetText(LOCTEXT("DocConversionSuccessful", "Doc gen completed"));
 			Current->Task->Notification->SetCompletionState(SNotificationItem::CS_Success);
 			Current->Task->Notification->SetHyperlink(FSimpleDelegate::CreateLambda(OnHyperlinkClicked), HyperlinkText);
@@ -465,11 +459,12 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 	Current.Reset();
 }
 
-FDocGenTaskProcessor::EIntermediateProcessingResult FDocGenTaskProcessor::ProcessIntermediateDocs(
-	const FString& IntermediateDir, const FString& OutputDir, const FString& DocTitle, const bool bCleanOutput)
+FDocGenTaskProcessor::EIntermediateProcessingResult
+FDocGenTaskProcessor::ProcessIntermediateDocs(const FString& IntermediateDir, const FString& OutputDir,
+											  const FString& DocTitle, const bool bCleanOutput)
 {
 	UE_LOG(LogKantanDocGen, Log, TEXT("Processing intermediate docs in %s, using the KantanDocGen tool"),
-	       *IntermediateDir);
+		   *IntermediateDir);
 
 	auto& PluginManager = IPluginManager::Get();
 	const auto Plugin = PluginManager.FindPlugin(TEXT("KantanDocGen"));
@@ -480,8 +475,8 @@ FDocGenTaskProcessor::EIntermediateProcessingResult FDocGenTaskProcessor::Proces
 	}
 
 
-	const FString DocGenToolBinPath = Plugin->GetBaseDir() / TEXT("ThirdParty") / TEXT("KantanDocGenTool") /
-		TEXT("bin");
+	const FString DocGenToolBinPath =
+		Plugin->GetBaseDir() / TEXT("ThirdParty") / TEXT("KantanDocGenTool") / TEXT("bin");
 	const FString DocGenToolExeName = TEXT("KantanDocGen.exe");
 	const FString DocGenToolPath = DocGenToolBinPath / DocGenToolExeName;
 
@@ -490,12 +485,12 @@ FDocGenTaskProcessor::EIntermediateProcessingResult FDocGenTaskProcessor::Proces
 	void* PipeWrite = nullptr;
 	verify(FPlatformProcess::CreatePipe(PipeRead, PipeWrite));
 
-	FString Args = FString(TEXT("-outputdir=")) + TEXT("\"") + OutputDir + TEXT("\"") +
-		TEXT(" -fromintermediate -intermediatedir=") + TEXT("\"") + IntermediateDir + TEXT("\"") + TEXT(" -name=") +
-		DocTitle + (bCleanOutput ? TEXT(" -cleanoutput") : TEXT(""));
+	FString Args = FString(TEXT("-outputdir=")) + TEXT("\"") + OutputDir + TEXT("\"")
+		+ TEXT(" -fromintermediate -intermediatedir=") + TEXT("\"") + IntermediateDir + TEXT("\"") + TEXT(" -name=")
+		+ DocTitle + (bCleanOutput ? TEXT(" -cleanoutput") : TEXT(""));
 	UE_LOG(LogKantanDocGen, Log, TEXT("Invoking conversion tool: %s %s"), *DocGenToolPath, *Args);
-	FProcHandle Proc = FPlatformProcess::CreateProc(*DocGenToolPath, *Args, true, false, false, nullptr, 0, nullptr,
-	                                                PipeWrite);
+	FProcHandle Proc =
+		FPlatformProcess::CreateProc(*DocGenToolPath, *Args, true, false, false, nullptr, 0, nullptr, PipeWrite);
 
 	int32 ReturnCode = 0;
 	if (Proc.IsValid())
@@ -531,8 +526,8 @@ FDocGenTaskProcessor::EIntermediateProcessingResult FDocGenTaskProcessor::Proces
 	}
 
 	// Close the pipes
-	FPlatformProcess::ClosePipe(0, PipeRead);
-	FPlatformProcess::ClosePipe(0, PipeWrite);
+	FPlatformProcess::ClosePipe(nullptr, PipeRead);
+	FPlatformProcess::ClosePipe(nullptr, PipeWrite);
 
 	switch (ReturnCode)
 	{
