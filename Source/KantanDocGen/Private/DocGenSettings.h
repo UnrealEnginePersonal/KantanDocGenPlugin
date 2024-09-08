@@ -102,7 +102,7 @@ public:
 		static bool bInitialized = false;
 
 		// This is a singleton, use default object
-		auto DefaultSettings = GetMutableDefault<UKantanDocGenSettingsObject>();
+		const auto DefaultSettings = GetMutableDefault<UKantanDocGenSettingsObject>();
 
 		if (!bInitialized)
 		{

@@ -29,7 +29,7 @@ class FDocGenTaskProcessor final : public FRunnable
 {
 public:
 	FDocGenTaskProcessor();
-    ~FDocGenTaskProcessor();
+    virtual ~FDocGenTaskProcessor() override;
 public:
 	void QueueTask(const FKantanDocGenSettings& Settings);
 	bool IsRunning() const;
@@ -80,8 +80,8 @@ protected:
 		DiskWriteFailure,
 	};
 
-	EIntermediateProcessingResult ProcessIntermediateDocs(const FString& IntermediateDir, const FString& OutputDir,
-	                                                      const FString& DocTitle, bool bCleanOutput);
+	static EIntermediateProcessingResult ProcessIntermediateDocs(const FString& IntermediateDir, const FString& OutputDir,
+	                                                      const FString& DocTitle, const bool bCleanOutput);
 
 protected:
 	TQueue<TSharedPtr<FDocGenTask>> Waiting;

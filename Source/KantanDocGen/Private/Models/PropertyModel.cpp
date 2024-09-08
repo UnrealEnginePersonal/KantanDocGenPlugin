@@ -8,5 +8,12 @@
 // *  All rights reserved.
 // **/
 
-#include "JsonModel.h"
+#include "PropertyModel.h"
 
+namespace Kds::DocGen::Models
+{
+	FPropertyModel::FPropertyModel(const FName& InDisplayName, const FString& InDescription) :
+		FBaseModel(InDisplayName, InDescription)
+	{
+	}
+} // namespace Kds::DocGen::Models

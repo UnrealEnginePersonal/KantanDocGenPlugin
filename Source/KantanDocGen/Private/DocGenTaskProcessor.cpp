@@ -150,7 +150,7 @@ void FDocGenTaskProcessor::QueueTask(const FKantanDocGenSettings& Settings)
 
 void FDocGenTaskProcessor::QueueTaskInternal(const FKantanDocGenSettings& Settings, const FNotificationInfo& TaskInfo)
 {
-	TSharedPtr<FDocGenTask> NewTask = MakeShared<FDocGenTask>();
+	const TSharedPtr<FDocGenTask> NewTask = MakeShared<FDocGenTask>();
 	NewTask->Settings = Settings;
 	NewTask->Notification = FSlateNotificationManager::Get().AddNotification(TaskInfo);
 	NewTask->Notification->SetCompletionState(SNotificationItem::CS_Pending);
@@ -170,10 +170,10 @@ bool FDocGenTaskProcessor::Init()
 
 uint32 FDocGenTaskProcessor::Run()
 {
-	TSharedPtr<FDocGenTask> next;
-	while (!bTerminationRequest && Waiting.Dequeue(next))
+	TSharedPtr<FDocGenTask> Next;
+	while (!bTerminationRequest && Waiting.Dequeue(Next))
 	{
-		ProcessTask(next);
+		ProcessTask(Next);
 	}
 
 	return 0;
@@ -466,13 +466,13 @@ void FDocGenTaskProcessor::ProcessTask(TSharedPtr<FDocGenTask> InTask)
 }
 
 FDocGenTaskProcessor::EIntermediateProcessingResult FDocGenTaskProcessor::ProcessIntermediateDocs(
-	const FString& IntermediateDir, const FString& OutputDir, const FString& DocTitle, bool bCleanOutput)
+	const FString& IntermediateDir, const FString& OutputDir, const FString& DocTitle, const bool bCleanOutput)
 {
 	UE_LOG(LogKantanDocGen, Log, TEXT("Processing intermediate docs in %s, using the KantanDocGen tool"),
 	       *IntermediateDir);
 
 	auto& PluginManager = IPluginManager::Get();
-	auto Plugin = PluginManager.FindPlugin(TEXT("KantanDocGen"));
+	const auto Plugin = PluginManager.FindPlugin(TEXT("KantanDocGen"));
 	if (!Plugin.IsValid())
 	{
 		UE_LOG(LogKantanDocGen, Error, TEXT("Failed to locate plugin info"));

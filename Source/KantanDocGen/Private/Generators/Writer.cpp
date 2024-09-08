@@ -10,47 +10,64 @@
 
 #include "Writer.h"
 
-#include "KantanDocGenLog.h"
+#include "Models/ClassModel.h"
 
-#include "Models/JsonModel.h"
-
-namespace KantanDocGen::Json
+namespace Kds::DocGen
 {
-	FDoc::FDoc(const FString& InTitle)
-		: Title(InTitle)
-		, Classes()
+	FDoc::FDoc(const FString& InModuleName, const FString& InModuleSourcePath, const FString& InModuleType) :
+		ModuleName(InModuleName), ModuleSourcePath(InModuleSourcePath), ModuleType(InModuleType), Classes()
 	{
+		// Setup
 	}
 
-	FWriter::FWriter(const FString& InDocsTitle, const FString& InOutputDir)
-		: DocsTitle(InDocsTitle)
-		, OutputDir(InOutputDir)
-		, ClassDocsMap()
+	FWriter::FWriter(const FString& InDocsTitle, const FString& InOutputDir) :
+		DocsTitle(InDocsTitle), OutputDir(InOutputDir)
 	{
+		// Setup
 	}
 
-	FWriter::~FWriter()
-	{
-		//Cleanup
-	}
 
 	TSharedPtr<Models::FClassModel> FWriter::FindClassChecked(UClass* Class) const
 	{
 		return ClassDocsMap.FindChecked(Class);
 	}
 
-	void FWriter::Save(const FString& string)
+	FString FWriter::GetDocsTitle() const
 	{
-		
-		for(TTuple<TWeakObjectPtr<UClass>, TSharedPtr<Models::FClassModel>> Pair : ClassDocsMap)
-        {
-           const TSharedPtr<Models::FClassModel>& ClassModel = Pair.Value;
-        }
+		return DocsTitle;
+	}
+
+	FString FWriter::GetOutputDir() const
+	{
+		return OutputDir;
+	}
+
+	void FWriter::Save()
+	{
+		if (ClassDocsMap.Num() == 0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("No classes to save"));
+			return;
+		}
+
+		const FString ModuleName = ClassDocsMap.begin().Value()->DocsName;
+		// TODO: Add module source path
+		const FString ModuleSourcePath = "TODO";
+		// TODO: Add module type
+		const FString ModuleType = "TODO";
+
+		for (TTuple<TWeakObjectPtr<UClass>, TSharedPtr<Models::FClassModel>> Pair : ClassDocsMap)
+		{
+			const TSharedPtr<Models::FClassModel>& ClassModel = Pair.Value;
+			const UClass* Class = Pair.Key.Get();
+
+			UE_LOG(LogTemp, Warning, TEXT("Saving Class: %s"), *Class->GetName());
+			UE_LOG(LogTemp, Warning, TEXT("Saving ClassModel: %s"), *ClassModel->Name.ToString());
+		}
 	}
 
 	void FWriter::AddClass(UClass* Class, const TSharedPtr<Models::FClassModel>& ClassModel)
 	{
-		UE_LOG(LogKantanDocGen, Log, TEXT("Adding class %s to writer"), *Class->GetName());
 		ClassDocsMap.Add(Class, ClassModel);
 	}
 
@@ -58,4 +75,4 @@ namespace KantanDocGen::Json
 	{
 		return ClassDocsMap.Contains(Class);
 	}
-}
+} // namespace Kds::DocGen

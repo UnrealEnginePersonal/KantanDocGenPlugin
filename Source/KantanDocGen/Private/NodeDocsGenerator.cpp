@@ -37,48 +37,47 @@
 #include "Misc/FileHelper.h"
 #include "AnimGraphNode_Base.h"
 
-#include "DocGenSettings.h"
-
-//#include "Generators/Writer.h"
+#include "Models/ClassModel.h"
 
 #include "Generators/Writer.h"
 
 #include "Utils/ClassUtils.h"
-#include "Models/JsonModel.h"
+#include "Models/PropertyModel.h"
 
 using namespace KantanDocGen::Utils;
-using namespace KantanDocGen::Json;
+using namespace Kds::DocGen::Models;
+using namespace Kds::DocGen;
 
-FNodeDocsGenerator::FNodeDocsGenerator()
+FNodeDocsGenerator::FNodeProcessingState::FNodeProcessingState() :
+	ClassModel(nullptr), ClassDocsPath(), RelImageBasePath(), ImageFilename()
 {
+	UE_LOG(LogKantanDocGen, Log, TEXT("NodeProcessingState created."));
 }
+
+FNodeDocsGenerator::FNodeDocsGenerator() {}
 
 FNodeDocsGenerator::~FNodeDocsGenerator()
 {
 	CleanUp();
 }
 
-bool FNodeDocsGenerator::GT_Init(
-	const FString& InDocsTitle, const FString& InOutputDir,
-	UClass* BlueprintContextClass /*= AActor::StaticClass()*/
+bool FNodeDocsGenerator::GT_Init(const FString& InDocsTitle, const FString& InOutputDir,
+								 UClass* BlueprintContextClass /*= AActor::StaticClass()*/
 )
 {
 	/*Writer = MakeShareable<FWriter>(new FWriter());	*/
 
 	DummyBP = CastChecked<UBlueprint>(FKismetEditorUtilities::CreateBlueprint(
-			BlueprintContextClass,GetTransientPackage(), NAME_None,BPTYPE_Normal,
-			UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), NAME_None
-		)
-	);
+		BlueprintContextClass, GetTransientPackage(), NAME_None, BPTYPE_Normal, UBlueprint::StaticClass(),
+		UBlueprintGeneratedClass::StaticClass(), NAME_None));
 
 	if (!DummyBP.IsValid())
 	{
 		return false;
 	}
 
-	Graph = FBlueprintEditorUtils::CreateNewGraph(
-		DummyBP.Get(), TEXT("TempoGraph"), UEdGraph::StaticClass(),
-		UEdGraphSchema_K2::StaticClass());
+	Graph = FBlueprintEditorUtils::CreateNewGraph(DummyBP.Get(), TEXT("TempoGraph"), UEdGraph::StaticClass(),
+												  UEdGraphSchema_K2::StaticClass());
 
 	DummyBP->AddToRoot();
 	Graph->AddToRoot();
@@ -89,11 +88,6 @@ bool FNodeDocsGenerator::GT_Init(
 	GraphPanel->RestoreViewSettings(FVector2D(0, 0), 10.0f);
 
 	this->Writer = MakeShareable(new FWriter(InDocsTitle, InOutputDir));
-
-	/*IndexXml = InitIndexXml(DocsTitle);*/
-	/*ClassDocsXML.Empty();*/
-	/*OutputDir = InOutputDir;*/
-
 	return true;
 }
 
@@ -123,9 +117,8 @@ UK2Node* FNodeDocsGenerator::GT_DocumentSimpleObject(UObject* SourceObject, FNod
 	return GT_InitializeForSpawner(nullptr, SourceObject, OutState);
 }
 
-UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(
-	UBlueprintNodeSpawner* Spawner, UObject* SourceObject, FNodeProcessingState& OutState
-)
+UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spawner, UObject* SourceObject,
+													 FNodeProcessingState& OutState)
 {
 	UK2Node* K2NodeInst = nullptr;
 	const bool bIsDocumentable = CanBeDocumented(Spawner, SourceObject);
@@ -136,20 +129,20 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(
 	UE_LOG(LogKantanDocGen, Log, TEXT("Source object file path is %s..."), *SourceObject->GetPathName());
 	UE_LOG(LogKantanDocGen, Log, TEXT("Documentable: %s"), bIsDocumentable ? TEXT("true") : TEXT("false"));
 
-	//Try to create a node from the spawner if it is documentable,
-	//This will be a null pointer if the spawner is not documentable
+	// Try to create a node from the spawner if it is documentable,
+	// This will be a null pointer if the spawner is not documentable
 	if (bIsDocumentable)
 	{
-		auto NodeInst = Spawner->Invoke(Graph.Get(), IBlueprintNodeBinder::FBindingSet{},
-		                                FVector2D(0, 0));
+		auto NodeInst = Spawner->Invoke(Graph.Get(), IBlueprintNodeBinder::FBindingSet{}, FVector2D(0, 0));
 		// Currently Blueprint nodes only
 		K2NodeInst = Cast<UK2Node>(NodeInst);
 		if (K2NodeInst == nullptr)
 		{
 			UE_LOG(LogKantanDocGen, Warning,
-			       TEXT("Failed to create node from spawner of class %s with node class"" %s (Object %s)."),
-			       *Spawner->GetClass()->GetName(),
-			       Spawner->NodeClass ? *Spawner->NodeClass->GetName() : TEXT("None"), *GetNameSafe(SourceObject));
+				   TEXT("Failed to create node from spawner of class %s with node class"
+						" %s (Object %s)."),
+				   *Spawner->GetClass()->GetName(), Spawner->NodeClass ? *Spawner->NodeClass->GetName() : TEXT("None"),
+				   *GetNameSafe(SourceObject));
 			return nullptr;
 		}
 	}
@@ -189,7 +182,7 @@ bool FNodeDocsGenerator::GT_Finalize(const FString& OutputPath)
 	}
 	else if (this->Settings && this->Settings->ExportMethod == EExportMethod::XML)
 	{
-		
+
 		return true;
 	}*/
 	if (!SaveClassDocXml(OutputPath))
@@ -258,14 +251,14 @@ bool FNodeDocsGenerator::GenerateNodeImage(UEdGraphNode* Node, FNodeProcessingSt
 			}
 
 			IImageWrapperModule& ImageWrapperModule =
-			 FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+				FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
 			TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 			TArray<uint8> CompressedImage;
 
 			const int32 X = static_cast<int32>(Desired.X);
-			if (const int32 Y = static_cast<int32>(Desired.Y); !ImageWrapper->SetRaw(
-				Pixels.GetData(), X * Y * sizeof(FColor), X, Y, ERGBFormat::BGRA, 8))
+			if (const int32 Y = static_cast<int32>(Desired.Y);
+				!ImageWrapper->SetRaw(Pixels.GetData(), X * Y * sizeof(FColor), X, Y, ERGBFormat::BGRA, 8))
 			{
 				UE_LOG(LogKantanDocGen, Error, TEXT("Failed to set raw pixels for node %s."), *NodeName);
 				return false;
@@ -332,8 +325,8 @@ bool ExtractPinInformation(const UEdGraphPin* Pin, FString& OutName, FString& Ou
 		// Parse type line
 		FParse::Line(&TooltipPtr, OutType);
 
-		// Currently there is an empty line here, but FParse::Line seems to gobble up empty lines as part of the previous call.
-		// Anyway, attempting here to deal with this generically in case that weird behaviour changes.
+		// Currently there is an empty line here, but FParse::Line seems to gobble up empty lines as part of the
+		// previous call. Anyway, attempting here to deal with this generically in case that weird behaviour changes.
 		while (*TooltipPtr == TEXT('\n'))
 		{
 			FString Buf;
@@ -375,19 +368,15 @@ bool ExtractPinInformation(const UEdGraphPin* Pin, FString& OutName, FString& Ou
 	return File;
 }*/
 
-TSharedPtr<Models::FClassModel>
-FNodeDocsGenerator::InitClassDocXml(const UClass* Class, const FString& InDocsTitle)
+TSharedPtr<Models::FClassModel> FNodeDocsGenerator::InitClassDocXml(const UClass* Class, const FString& InDocsTitle)
 {
 	UE_LOG(LogKantanDocGen, Log, TEXT("Initializing class doc xml for %s..."), *Class->GetName());
 
 	TSharedPtr<Models::FClassModel> Model =
-		MakeShared<Models::FClassModel>(
-			InDocsTitle,
-			GetClassDocId(Class),
-			FName(FClassUtils::GetClassDocName(Class)),
-			FClassUtils::GetClassDescription(Class));
+		MakeShared<Models::FClassModel>(InDocsTitle, GetClassDocId(Class), FName(FClassUtils::GetClassDocName(Class)),
+										FClassUtils::GetClassDescription(Class));
 
-	
+
 	static const FName PathKey("ModuleRelativePath");
 	FString Path = Class->GetMetaData(PathKey);
 	if (Path.IsEmpty())
@@ -395,32 +384,32 @@ FNodeDocsGenerator::InitClassDocXml(const UClass* Class, const FString& InDocsTi
 		Path = Class->GetPathName();
 		Path.RemoveFromEnd("." + Class->GetName());
 	}
-	
-	Model->IncludePath = Path;	
+
+	Model->IncludePath = Path;
 	const UClass* Parent = Class->GetSuperClass();
 	FString ClassTreeStr = *FClassUtils::GetClassDocName(Class);
-	
+
 	while (nullptr != Parent)
 	{
 		ClassTreeStr = FString::Printf(TEXT("%s > %s"), *FClassUtils::GetClassDocName(Parent), *ClassTreeStr);
 		Parent = Parent->GetSuperClass();
 	}
-	
-	//AppendChildCDATA(Root, TEXT("classTree"), ClassTreeStr);
+
+	// AppendChildCDATA(Root, TEXT("classTree"), ClassTreeStr);
 	Model->ClassTree = ClassTreeStr;
-	
-	//FXmlNode* Props = AppendChild(Root, TEXT("properties"));
+
+	// FXmlNode* Props = AppendChild(Root, TEXT("properties"));
 	for (TFieldIterator<FProperty> It(Class, EFieldIteratorFlags::ExcludeSuper); It; ++It)
 	{
 		if ((It->PropertyFlags & (CPF_BlueprintVisible | CPF_Edit)) != 0)
 		{
 			const FName DisplayName = FName(*It->GetDisplayNameText().ToString());
 			const FString Description = It->GetToolTipText().ToString();
-			
+
 			TSharedPtr<Models::FPropertyModel> Property = MakeShared<Models::FPropertyModel>(DisplayName, Description);
 			Property->Type = It->GetCPPType();
-			
-			Model->AddProperty(MoveTemp(*Property));			
+
+			Model->AddProperty(MoveTemp(*Property));
 		}
 	}
 
@@ -562,7 +551,7 @@ bool FNodeDocsGenerator::GenerateNodeDocs(UK2Node* Node, FNodeProcessingState& S
 	// Since we pull these from the class xml file, the entries are already CDATA wrapped
 	AppendChildRaw(Root, TEXT("class_id"), State.ClassDocXml->GetRootNode()->FindChildNode(TEXT("id"))->GetContent());
 	AppendChildRaw(Root, TEXT("class_name"),
-	               State.ClassDocXml->GetRootNode()->FindChildNode(TEXT("display_name"))->GetContent());
+				   State.ClassDocXml->GetRootNode()->FindChildNode(TEXT("display_name"))->GetContent());
 
 	FString NodeShortTitle = Node->GetNodeTitle(ENodeTitleType::ListView).ToString();
 	AppendChildCDATA(Root, TEXT("shorttitle"), NodeShortTitle.TrimEnd());
@@ -637,7 +626,7 @@ bool FNodeDocsGenerator::SaveIndexXml(const FString& OutDir) const
 	return true;
 }
 
-bool FNodeDocsGenerator::SaveClassDocXml(const FString& OutDir)
+bool FNodeDocsGenerator::SaveClassDocXml(const FString& OutDir) const
 {
 	/*for (const auto& Entry : ClassDocsXML)
 	{
@@ -646,11 +635,8 @@ bool FNodeDocsGenerator::SaveClassDocXml(const FString& OutDir)
 		Entry.Value->Save(Path);
 	}
 	*/
-	
-	
-	
 	UE_LOG(LogKantanDocGen, Log, TEXT("Saving class doc xml..."));
-	Writer->Save(OutDir);
+	Writer->Save();
 	return true;
 }
 
@@ -743,7 +729,7 @@ bool FNodeDocsGenerator::IsSpawnerDocumentable(UBlueprintNodeSpawner* Spawner, c
 	};
 
 	// Function spawners for functions with any of the following metadata tags will also be excluded
-	static const FName ExcludedFunctionMeta[] = {TEXT("BlueprintAutocast")};
+	static const FName ExcludedFunctionMeta[] = { TEXT("BlueprintAutocast") };
 
 	static constexpr uint32 PermittedAccessSpecifiers = (FUNC_Public | FUNC_Protected);
 
