@@ -1,8 +1,12 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-// Copyright (C) 2016-2017 Cameron Angus. All Rights Reserved.
+// /***********************************************************************************
+// *  File:             KantanDocGenModule.h
+// *  Project:          Kds_CharacterModule
+// *  Author(s):        Kasper de Bruin
+// *  Created:          06-09-2024
+// *
+// *  Copyright (c) 2024  Nightmare Fuel Games
+// *  All rights reserved.
+// **/
 
 #pragma once
 
@@ -22,11 +26,12 @@ public:
 	FKantanDocGenModule()
 	{
 	}
+
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
-	void GenerateDocs(struct FKantanDocGenSettings const& Settings);
+	void GenerateDocs(const FKantanDocGenSettings& Settings);
 
 protected:
 	void ShowDocGenUI();

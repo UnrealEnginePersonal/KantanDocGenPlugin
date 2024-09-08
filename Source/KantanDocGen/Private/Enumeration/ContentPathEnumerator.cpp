@@ -1,8 +1,12 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-// Copyright (C) 2016-2017 Cameron Angus. All Rights Reserved.
+// /***********************************************************************************
+// *  File:             ContentPathEnumerator.cpp
+// *  Project:          Kds_CharacterModule
+// *  Author(s):        Kasper de Bruin
+// *  Created:          06-09-2024
+// *
+// *  Copyright (c) 2024  Nightmare Fuel Games
+// *  All rights reserved.
+// **/
 
 #include "ContentPathEnumerator.h"
 #include "KantanDocGenLog.h"
@@ -11,14 +15,14 @@
 #include "Engine/Blueprint.h"
 #include "Animation/AnimBlueprint.h"
 
-FContentPathEnumerator::FContentPathEnumerator(FName const& InPath)
+FContentPathEnumerator::FContentPathEnumerator(const FName& InPath)
 {
 	CurIndex = 0;
 
 	Prepass(InPath);
 }
 
-void FContentPathEnumerator::Prepass(FName const& Path)
+void FContentPathEnumerator::Prepass(const FName& Path)
 {
 	auto& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	auto& AssetRegistry = AssetRegistryModule.Get();
@@ -40,12 +44,13 @@ UObject* FContentPathEnumerator::GetNext()
 
 	while (CurIndex < AssetList.Num())
 	{
-		auto const& AssetData = AssetList[CurIndex];
+		const auto& AssetData = AssetList[CurIndex];
 		++CurIndex;
 
 		if (auto Blueprint = Cast<UBlueprint>(AssetData.GetAsset()))
 		{
-			UE_LOG(LogKantanDocGen, Log, TEXT("Enumerating object '%s' at '%s'"), *Blueprint->GetName(), *AssetData.GetObjectPathString());
+			UE_LOG(LogKantanDocGen, Log, TEXT("Enumerating object '%s' at '%s'"), *Blueprint->GetName(),
+			       *AssetData.GetObjectPathString());
 
 			Result = Blueprint;
 			break;

@@ -1,8 +1,12 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-// Copyright (C) 2016-2017 Cameron Angus. All Rights Reserved.
+// /***********************************************************************************
+// *  File:             NativeModuleEnumerator.h
+// *  Project:          Kds_CharacterModule
+// *  Author(s):        Kasper de Bruin
+// *  Created:          06-09-2024
+// *
+// *  Copyright (c) 2024  Nightmare Fuel Games
+// *  All rights reserved.
+// **/
 
 #pragma once
 
@@ -13,7 +17,7 @@
 class FNativeModuleEnumerator : public ISourceObjectEnumerator
 {
 public:
-	FNativeModuleEnumerator(FName const& InModuleName);
+	FNativeModuleEnumerator(const FName& InModuleName);
 
 public:
 	virtual UObject* GetNext() override;
@@ -21,7 +25,7 @@ public:
 	virtual int32 EstimatedSize() const override;
 
 protected:
-	void Prepass(FName const& ModuleName);
+	void Prepass(const FName& ModuleName);
 
 protected:
 	TArray<TWeakObjectPtr<UObject>> ObjectList;

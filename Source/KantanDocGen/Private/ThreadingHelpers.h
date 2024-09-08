@@ -1,8 +1,12 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-// Copyright (C) 2016-2017 Cameron Angus. All Rights Reserved.
+// /***********************************************************************************
+// *  File:             ThreadingHelpers.h
+// *  Project:          Kds_CharacterModule
+// *  Author(s):        Kasper de Bruin
+// *  Created:          06-09-2024
+// *
+// *  Copyright (c) 2024  Nightmare Fuel Games
+// *  All rights reserved.
+// **/
 
 #pragma once
 
@@ -12,18 +16,18 @@
 
 namespace DocGenThreads
 {
-
-	template<typename TLambda>
-	inline auto RunOnGameThread(TLambda Func) -> void
+	template <typename TLambda>
+	inline void RunOnGameThread(TLambda Func)
 	{
-		FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady(MoveTemp(Func), TStatId(), nullptr, ENamedThreads::GameThread);
+		FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady(
+			MoveTemp(Func), TStatId(), nullptr, ENamedThreads::GameThread);
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(Task);
 	}
 
-	template<typename TLambda, typename... TArgs>
+	template <typename TLambda, typename... TArgs>
 	inline auto RunOnGameThreadRetVal(TLambda Func, TArgs&... Args) -> decltype(Func(Args...))
 	{
-		typedef decltype(Func(Args...)) TResult;
+		using TResult = decltype(Func(Args...));
 
 		TResult Result;
 		TFunction<void()> NullaryFunc = [&]
@@ -31,10 +35,10 @@ namespace DocGenThreads
 			Result = Func(Args...);
 		};
 
-		FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady(NullaryFunc, TStatId(), nullptr, ENamedThreads::GameThread);
+		FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady(
+			NullaryFunc, TStatId(), nullptr, ENamedThreads::GameThread);
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(Task);
 
 		return Result;
 	}
-
 }

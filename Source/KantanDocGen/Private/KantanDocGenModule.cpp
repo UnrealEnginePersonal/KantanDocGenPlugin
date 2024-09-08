@@ -1,8 +1,12 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-// Copyright (C) 2016-2017 Cameron Angus. All Rights Reserved.
+// /***********************************************************************************
+// *  File:             KantanDocGenModule.cpp
+// *  Project:          Kds_CharacterModule
+// *  Author(s):        Kasper de Bruin
+// *  Created:          06-09-2024
+// *
+// *  Copyright (c) 2024  Nightmare Fuel Games
+// *  All rights reserved.
+// **/
 
 #include "KantanDocGenModule.h"
 #include "KantanDocGenLog.h"
@@ -33,11 +37,11 @@ void FKantanDocGenModule::StartupModule()
 
 	// Map commands
 	FUIAction ShowDocGenUI_UIAction(FExecuteAction::CreateRaw(this, &FKantanDocGenModule::ShowDocGenUI),
-		FCanExecuteAction::CreateLambda(
-			[]
-			{
-				return true;
-			}));
+	                                FCanExecuteAction::CreateLambda(
+		                                []
+		                                {
+			                                return true;
+		                                }));
 
 	auto CmdInfo = FKantanDocGenCommands::Get().ShowDocGenUI;
 	UICommands->MapAction(CmdInfo, ShowDocGenUI_UIAction);
@@ -50,7 +54,8 @@ void FKantanDocGenModule::StartupModule()
 
 	auto& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 	TSharedRef<FExtender> MenuExtender(new FExtender());
-	MenuExtender->AddMenuExtension(TEXT("FileProject"), EExtensionHook::After, UICommands.ToSharedRef(), FMenuExtensionDelegate::CreateLambda(AddMenuExtension));
+	MenuExtender->AddMenuExtension(TEXT("FileProject"), EExtensionHook::After, UICommands.ToSharedRef(),
+	                               FMenuExtensionDelegate::CreateLambda(AddMenuExtension));
 	LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MenuExtender);
 }
 
@@ -64,7 +69,9 @@ void FKantanDocGenModule::ShutdownModule()
 inline bool MatchPotentiallyQuoted(const TCHAR* Stream, const TCHAR* Match, FString& Value)
 {
 	while ((*Stream == ' ') || (*Stream == 9))
+	{
 		Stream++;
+	}
 
 	if (FCString::Strnicmp(Stream, Match, FCString::Strlen(Match)) == 0)
 	{
@@ -76,26 +83,34 @@ inline bool MatchPotentiallyQuoted(const TCHAR* Stream, const TCHAR* Match, FStr
 	return false;
 }
 
-void FKantanDocGenModule::GenerateDocs(FKantanDocGenSettings const& Settings)
+void FKantanDocGenModule::GenerateDocs(const FKantanDocGenSettings& Settings)
 {
 	if (!Processor.IsValid())
 	{
 		Processor = MakeUnique<FDocGenTaskProcessor>();
 	}
+	else if (Processor->IsRunning())
+	{
+		UE_LOG(LogKantanDocGen, Warning, TEXT("Doc gen processor is already running. Ignoring request."));
+		return;
+	}
 
 	Processor->QueueTask(Settings);
-
-	if (!Processor->IsRunning())
-	{
-		FRunnableThread::Create(Processor.Get(), TEXT("KantanDocGenProcessorThread"), 0, TPri_BelowNormal);
-	}
+	FRunnableThread::Create(Processor.Get(), TEXT("KantanDocGenProcessorThread"), 0, TPri_BelowNormal);
 }
 
 void FKantanDocGenModule::ShowDocGenUI()
 {
 	const FText WindowTitle = LOCTEXT("DocGenWindowTitle", "Kantan Doc Gen");
 
-	TSharedPtr<SWindow> Window = SNew(SWindow).Title(WindowTitle).MinWidth(400.0f).MinHeight(300.0f).MaxHeight(600.0f).SupportsMaximize(false).SupportsMinimize(false).SizingRule(ESizingRule::Autosized);
+	TSharedPtr<SWindow> Window = SNew(SWindow)
+		.Title(WindowTitle)
+		.MinWidth(400.0f)
+		.MinHeight(300.0f)
+		.MaxHeight(600.0f)
+		.SupportsMaximize(false)
+		.SupportsMinimize(false)
+		.SizingRule(ESizingRule::Autosized);
 
 	TSharedRef<SWidget> DocGenContent = SNew(SKantanDocGenWidget);
 	Window->SetContent(DocGenContent);

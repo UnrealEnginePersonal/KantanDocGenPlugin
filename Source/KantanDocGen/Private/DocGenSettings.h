@@ -1,8 +1,12 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-// Copyright (C) 2016-2017 Cameron Angus. All Rights Reserved.
+// /***********************************************************************************
+// *  File:             DocGenSettings.h
+// *  Project:          Kds_CharacterModule
+// *  Author(s):        Kasper de Bruin
+// *  Created:          06-09-2024
+// *
+// *  Copyright (c) 2024  Nightmare Fuel Games
+// *  All rights reserved.
+// **/
 
 #pragma once
 
@@ -25,6 +29,13 @@ enum class EGenMethod : uint8
 	ProjectAndPlugins
 };
 
+UENUM()
+enum class EExportMethod : uint8
+{
+	XML,
+	JSON
+};
+
 USTRUCT()
 struct FKantanDocGenSettings
 {
@@ -36,16 +47,23 @@ public:
 	EGenMethod GenerationMethod = EGenMethod::Manual;
 
 	/** Title of the generated documentation (also used for output dir : "OutputDirectory/DocumentationTitle/<doc>" */
-	UPROPERTY(EditAnywhere, Category = "Documentation", Meta = (EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category = "Documentation",
+		Meta = (EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
 	FString DocumentationTitle;
 
 	/** List of C++ modules in which to search for blueprint-exposed classes to document. */
-	UPROPERTY(EditAnywhere, Category = "Class Search", Meta = (Tooltip = "Raw module names (Do not prefix with '/Script').", EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category = "Class Search",
+		Meta = (Tooltip = "Raw module names (Do not prefix with '/Script').", EditCondition =
+			"GenerationMethod==EGenMethod::Manual", EditConditionHides))
 	TArray<FName> NativeModules;
 
 	/** List of paths in which to search for blueprints to document. */
-	UPROPERTY(EditAnywhere, Category = "Class Search", Meta = (ContentDir, EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category = "Class Search",
+		Meta = (ContentDir, EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
 	TArray<FDirectoryPath> ContentPaths;
+
+	UPROPERTY(EditAnywhere, Category = "Output")
+	EExportMethod ExportMethod = EExportMethod::XML;
 
 	UPROPERTY(EditAnywhere, Category = "Output")
 	FDirectoryPath OutputDirectory;
@@ -61,11 +79,15 @@ public:
 	{
 		BlueprintContextClass = AActor::StaticClass();
 		bCleanOutputDirectory = false;
+		ExportMethod = EExportMethod::XML;
 	}
 
 	bool HasAnySources() const
 	{
-		return GenerationMethod != EGenMethod::Manual || NativeModules.Num() > 0 || ContentPaths.Num() > 0;
+		return
+			GenerationMethod != EGenMethod::Manual ||
+			NativeModules.Num() > 0 ||
+			ContentPaths.Num() > 0;
 	}
 };
 

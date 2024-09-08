@@ -1,8 +1,12 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-// Copyright (C) 2016-2017 Cameron Angus. All Rights Reserved.
+// /***********************************************************************************
+// *  File:             NativeModuleEnumerator.cpp
+// *  Project:          Kds_CharacterModule
+// *  Author(s):        Kasper de Bruin
+// *  Created:          06-09-2024
+// *
+// *  Copyright (c) 2024  Nightmare Fuel Games
+// *  All rights reserved.
+// **/
 
 #include "NativeModuleEnumerator.h"
 #include "KantanDocGenLog.h"
@@ -12,14 +16,14 @@
 #include "UObject/UObjectIterator.h"
 #include "EdGraphSchema_K2.h"
 
-FNativeModuleEnumerator::FNativeModuleEnumerator(FName const& InModuleName)
+FNativeModuleEnumerator::FNativeModuleEnumerator(const FName& InModuleName)
 {
 	CurIndex = 0;
 
 	Prepass(InModuleName);
 }
 
-void FNativeModuleEnumerator::Prepass(FName const& ModuleName)
+void FNativeModuleEnumerator::Prepass(const FName& ModuleName)
 {
 	// For native package, all classes are already loaded so it's no problem to fully enumerate during prepass.
 	// That way we have more info for progress estimation.
@@ -64,7 +68,8 @@ void FNativeModuleEnumerator::Prepass(FName const& ModuleName)
 
 		if (ObjectToProcess && !Processed.Contains(ObjectToProcess))
 		{
-			UE_LOG(LogKantanDocGen, Log, TEXT("Enumerating object '%s' in package '%s'"), *ObjectToProcess->GetName(), *PkgName);
+			UE_LOG(LogKantanDocGen, Log, TEXT("Enumerating object '%s' in package '%s'"), *ObjectToProcess->GetName(),
+			       *PkgName);
 
 			// Store this class
 			ObjectList.Add(ObjectToProcess);

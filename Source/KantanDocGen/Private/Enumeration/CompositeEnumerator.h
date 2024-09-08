@@ -1,8 +1,12 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-// Copyright (C) 2016-2017 Cameron Angus. All Rights Reserved.
+// /***********************************************************************************
+// *  File:             CompositeEnumerator.h
+// *  Project:          Kds_CharacterModule
+// *  Author(s):        Kasper de Bruin
+// *  Created:          06-09-2024
+// *
+// *  Copyright (c) 2024  Nightmare Fuel Games
+// *  All rights reserved.
+// **/
 
 #pragma once
 
@@ -10,11 +14,11 @@
 
 #include "ISourceObjectEnumerator.h"
 
-template<typename TChildEnum>
+template <typename TChildEnum>
 class FCompositeEnumerator : public ISourceObjectEnumerator
 {
 public:
-	FCompositeEnumerator(TArray<FName> const& InNames)
+	FCompositeEnumerator(const TArray<FName>& InNames)
 	{
 		CurEnumIndex = 0;
 		TotalSize = 0;
@@ -48,7 +52,8 @@ public:
 	{
 		if (CurEnumIndex < ChildEnumList.Num())
 		{
-			return (float)(Completed + ChildEnumList[CurEnumIndex]->EstimateProgress() * ChildEnumList[CurEnumIndex]->EstimatedSize()) / TotalSize;
+			return (float)(Completed + ChildEnumList[CurEnumIndex]->EstimateProgress() * ChildEnumList[CurEnumIndex]->
+				EstimatedSize()) / TotalSize;
 		}
 		else
 		{
@@ -62,7 +67,7 @@ public:
 	}
 
 protected:
-	void Prepass(TArray<FName> const& Names)
+	void Prepass(const TArray<FName>& Names)
 	{
 		for (auto Name : Names)
 		{

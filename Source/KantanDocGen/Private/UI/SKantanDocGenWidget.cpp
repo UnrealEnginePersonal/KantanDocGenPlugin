@@ -1,8 +1,12 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-// Copyright (C) 2016-2017 Cameron Angus. All Rights Reserved.
+// /***********************************************************************************
+// *  File:             SKantanDocGenWidget.cpp
+// *  Project:          Kds_CharacterModule
+// *  Author(s):        Kasper de Bruin
+// *  Created:          06-09-2024
+// *
+// *  Copyright (c) 2024  Nightmare Fuel Games
+// *  All rights reserved.
+// **/
 
 #include "SKantanDocGenWidget.h"
 #include "DocGenSettings.h"
@@ -30,14 +34,28 @@ void SKantanDocGenWidget::Construct(const SKantanDocGenWidget::FArguments& InArg
 
 	auto DetailView = PropertyEditorModule.CreateDetailView(DetailArgs);
 
-	ChildSlot[SNew(SVerticalBox)
+	ChildSlot
+	[
+		SNew(SVerticalBox)
 
-		+ SVerticalBox::Slot().AutoHeight()[DetailView]
+		+ SVerticalBox::Slot().AutoHeight()
+		[
+			DetailView
+		]
 
-		+ SVerticalBox::Slot().AutoHeight()[SNew(SHorizontalBox)
+		+ SVerticalBox::Slot().AutoHeight()
+		[
+			SNew(SHorizontalBox)
 
 			+ SHorizontalBox::Slot().AutoWidth()
-				  [SNew(SButton).Text(LOCTEXT("GenButtonLabel", "Generate Docs")).IsEnabled(this, &SKantanDocGenWidget::ValidateSettingsForGeneration).OnClicked(this, &SKantanDocGenWidget::OnGenerateDocs)]]];
+			[
+				SNew(SButton)
+				.Text(LOCTEXT("GenButtonLabel", "Generate Docs"))
+				.IsEnabled(this, &SKantanDocGenWidget::ValidateSettingsForGeneration)
+				.OnClicked(this, &SKantanDocGenWidget::OnGenerateDocs)
+			]
+		]
+	];
 
 	auto Settings = UKantanDocGenSettingsObject::Get();
 	DetailView->SetObject(Settings);
@@ -45,7 +63,7 @@ void SKantanDocGenWidget::Construct(const SKantanDocGenWidget::FArguments& InArg
 
 bool SKantanDocGenWidget::ValidateSettingsForGeneration() const
 {
-	auto const& Settings = UKantanDocGenSettingsObject::Get()->Settings;
+	const auto& Settings = UKantanDocGenSettingsObject::Get()->Settings;
 
 	if (Settings.DocumentationTitle.IsEmpty())
 	{
@@ -68,7 +86,9 @@ bool SKantanDocGenWidget::ValidateSettingsForGeneration() const
 FReply SKantanDocGenWidget::OnGenerateDocs()
 {
 	auto& Module = FModuleManager::LoadModuleChecked<FKantanDocGenModule>(TEXT("KantanDocGen"));
-	Module.GenerateDocs(UKantanDocGenSettingsObject::Get()->Settings);
+	Module.GenerateDocs(
+		UKantanDocGenSettingsObject::Get()->Settings
+	);
 
 	TSharedRef<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared()).ToSharedRef();
 	FSlateApplication::Get().RequestDestroyWindow(ParentWindow);

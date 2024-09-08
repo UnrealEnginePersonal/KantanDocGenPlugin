@@ -1,26 +1,29 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-// Copyright (C) 2016-2017 Cameron Angus. All Rights Reserved.
+// /***********************************************************************************
+// *  File:             SKantanDocGenWidget.h
+// *  Project:          Kds_CharacterModule
+// *  Author(s):        Kasper de Bruin
+// *  Created:          06-09-2024
+// *
+// *  Copyright (c) 2024  Nightmare Fuel Games
+// *  All rights reserved.
+// **/
 
 #pragma once
 
 #include "CoreMinimal.h"
 
 #include "Widgets/SCompoundWidget.h"
-#include "Widgets/DeclarativeSyntaxSupport.h"
 
 class SKantanDocGenWidget : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SKantanDocGenWidget)
-	{
-	}
+		{
+		}
 
 	SLATE_END_ARGS()
 
-	void Construct(const SKantanDocGenWidget::FArguments& InArgs);
+	void Construct(const FArguments& InArgs);
 
 protected:
 	bool ValidateSettingsForGeneration() const;

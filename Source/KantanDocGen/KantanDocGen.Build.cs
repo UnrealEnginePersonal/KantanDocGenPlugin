@@ -8,32 +8,36 @@ using UnrealBuildTool;
 
 public class KantanDocGen : ModuleRules
 {
-    public KantanDocGen(ReadOnlyTargetRules Target) : base(Target)
-    {
-        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-        IWYUSupport = IWYUSupport.KeepAsIsForNow;
+	public KantanDocGen(ReadOnlyTargetRules Target) : base(Target)
+	{
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		IWYUSupport = IWYUSupport.KeepAsIsForNow;
 
-        PublicDependencyModuleNames.AddRange(
-            new string[] {
-                "AnimGraph",
-                "Core",
-                "CoreUObject",
-                "Engine",
-                "InputCore",
-                "Slate",
-                "SlateCore",
-                "UnrealEd",
-                "PropertyEditor",
-                "EditorStyle",
-                "BlueprintGraph",
-                "GraphEditor",
-                "MainFrame",
-                "LevelEditor",
-                "XmlParser",
-                "UMG",
-                "Projects",
-                "ImageWriteQueue"
-            }
-        );
-    }
+		PublicDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"AnimGraph",
+				"Core",
+				"CoreUObject",
+				"Engine",
+				"InputCore",
+				"Slate",
+				"SlateCore",
+				"UnrealEd",
+				"PropertyEditor",
+				"EditorStyle",
+				"BlueprintGraph",
+				"GraphEditor",
+				"MainFrame",
+				"LevelEditor",
+				"XmlParser",
+				"UMG",
+				"Projects",
+				"ImageWriteQueue",
+				"Json"
+			}
+		);
+		
+		PrivateDependencyModuleNames.Add("KdsLogging");
+	}
 }

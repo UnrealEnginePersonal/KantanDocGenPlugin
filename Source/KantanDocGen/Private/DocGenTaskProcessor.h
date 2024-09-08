@@ -1,8 +1,12 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-// Copyright (C) 2016-2017 Cameron Angus. All Rights Reserved.
+// /***********************************************************************************
+// *  File:             DocGenTaskProcessor.h
+// *  Project:          Kds_CharacterModule
+// *  Author(s):        Kasper de Bruin
+// *  Created:          06-09-2024
+// *
+// *  Copyright (c) 2024  Nightmare Fuel Games
+// *  All rights reserved.
+// **/
 
 #pragma once
 
@@ -21,13 +25,13 @@ class FNodeDocsGenerator;
 
 class UBlueprintNodeSpawner;
 
-class FDocGenTaskProcessor : public FRunnable
+class FDocGenTaskProcessor final : public FRunnable
 {
 public:
 	FDocGenTaskProcessor();
-
+    ~FDocGenTaskProcessor();
 public:
-	void QueueTask(FKantanDocGenSettings const& Settings);
+	void QueueTask(const FKantanDocGenSettings& Settings);
 	bool IsRunning() const;
 
 public:
@@ -37,12 +41,12 @@ public:
 	virtual void Stop() override;
 
 protected:
-	void QueueTaskInternal(FKantanDocGenSettings const& Settings, struct FNotificationInfo& TaskInfo);
+	void QueueTaskInternal(const FKantanDocGenSettings& Settings, const FNotificationInfo& TaskInfo);
 
 	struct FDocGenTask
 	{
 		FKantanDocGenSettings Settings;
-		TSharedPtr<class SNotificationItem> Notification;
+		TSharedPtr<SNotificationItem> Notification;
 	};
 
 	struct FDocGenCurrentTask
@@ -51,10 +55,10 @@ protected:
 
 		TQueue<TSharedPtr<ISourceObjectEnumerator>> Enumerators;
 		TSet<FName> Excluded;
-		TSet<TWeakObjectPtr<UObject>> Processed;
+		TSet<TWeakObjectPtr<>> Processed;
 
 		TSharedPtr<ISourceObjectEnumerator> CurrentEnumerator;
-		TWeakObjectPtr<UObject> SourceObject;
+		TWeakObjectPtr<> SourceObject;
 		TQueue<TWeakObjectPtr<UBlueprintNodeSpawner>> CurrentSpawners;
 
 		TUniquePtr<FNodeDocsGenerator> DocGen;
@@ -76,13 +80,16 @@ protected:
 		DiskWriteFailure,
 	};
 
-	EIntermediateProcessingResult ProcessIntermediateDocs(FString const& IntermediateDir, FString const& OutputDir, FString const& DocTitle, bool bCleanOutput);
+	EIntermediateProcessingResult ProcessIntermediateDocs(const FString& IntermediateDir, const FString& OutputDir,
+	                                                      const FString& DocTitle, bool bCleanOutput);
 
 protected:
 	TQueue<TSharedPtr<FDocGenTask>> Waiting;
 	TUniquePtr<FDocGenCurrentTask> Current;
 	TQueue<TSharedPtr<FDocGenOutputTask>> Converting;
 
-	FThreadSafeBool bRunning; // @NOTE: Using this to sync with module calls from game thread is not 100% okay (we're not atomically testing), but whatevs.
+	// @NOTE: Using this to sync with module calls from game thread is not 100% okay (we're not atomically testing), but whatever.
+	FThreadSafeBool bRunning;
+
 	FThreadSafeBool bTerminationRequest;
 };
