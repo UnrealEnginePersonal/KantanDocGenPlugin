@@ -206,14 +206,14 @@ void FDocGenTaskProcessor::ProcessTask(const TSharedPtr<FDocGenTask>& InTask)
 
 		// @TODO: Specific class enumerator
 		Current->Enumerators.Enqueue(
-			MakeShared<FCompositeEnumerator<FNativeModuleEnumerator>>(Current->Task->Settings.NativeModules));
+			MakeShared<TCompositeEnumerator<FNativeModuleEnumerator>>(Current->Task->Settings.NativeModules));
 
 		TArray<FName> ContentPackagePaths;
 		for (const auto& [Path] : Current->Task->Settings.ContentPaths)
 		{
 			ContentPackagePaths.AddUnique(FName(*Path));
 		}
-		Current->Enumerators.Enqueue(MakeShared<FCompositeEnumerator<FContentPathEnumerator>>(ContentPackagePaths));
+		Current->Enumerators.Enqueue(MakeShared<TCompositeEnumerator<FContentPathEnumerator>>(ContentPackagePaths));
 	};
 
 	auto GameThread_EnumerateNextObject = [this]() -> bool

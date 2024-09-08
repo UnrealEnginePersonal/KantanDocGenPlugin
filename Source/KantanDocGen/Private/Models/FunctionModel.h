@@ -14,7 +14,7 @@
 
 namespace Kds::DocGen::Models
 {
-	struct FFunctionModel : FBaseModel
+	struct FFunctionModel final : FBaseModel
 	{
 	public:
 		FString FullName;
@@ -23,20 +23,22 @@ namespace Kds::DocGen::Models
 		bool bBlueprintCallable;
 		bool bBlueprintPure;
 		bool bBlueprintEvent;
-		
+
 		TArray<TSharedPtr<FPropertyModel>> Parameters;
 
-		//TODO: Add These Properties
+		// TODO: Add These Properties
 		FString RawDescription;
 		FString RawShortDescription;
 
+		FFunctionModel(const FName& InName, const FString& Description);
 		FFunctionModel(const FName& InName, const FString& InFullName, const FString& InDescription,
-					   const FString& InImage, const bool bInBlueprintCallable, const bool bInBlueprintEvent);
+					   const FString& InImage, const bool bInBlueprintCallable, const bool bInBlueprintPure,
+					   const bool bInBlueprintEvent);
 
 		virtual ~FFunctionModel() override = default;
 
 		virtual FJsonObject ToJson() const override;
-		
+
 		void AddParameter(const FPropertyModel& Parameter);
 	};
 } // namespace Kds::DocGen::Models

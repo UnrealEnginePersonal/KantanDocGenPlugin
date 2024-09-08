@@ -3,11 +3,15 @@
 
 namespace Kds::DocGen::Models
 {
+	FFunctionModel::FFunctionModel(const FName& InName, const FString& Description) :
+		FBaseModel(InName, Description), bBlueprintCallable(false), bBlueprintPure(false), bBlueprintEvent(false)
+	{
+	}
 	FFunctionModel::FFunctionModel(const FName& InName, const FString& InFullName, const FString& InDescription,
-								   const FString& InImage, const bool bInBlueprintCallable,
+								   const FString& InImage, const bool bInBlueprintCallable, const bool bInBlueprintPure,
 								   const bool bInBlueprintEvent) :
 		FBaseModel(InName, InDescription), FullName(InFullName), Image(InImage),
-		bBlueprintCallable(bInBlueprintCallable), bBlueprintPure(false), bBlueprintEvent(bInBlueprintEvent)
+		bBlueprintCallable(bInBlueprintCallable), bBlueprintPure(bInBlueprintPure), bBlueprintEvent(bInBlueprintEvent)
 	{
 	}
 

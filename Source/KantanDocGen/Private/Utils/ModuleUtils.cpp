@@ -46,11 +46,11 @@ void FModuleUtils::Initialize()
 	// Resolve out the paths for each module and add the cut-down into to our output array
 	for (const TSharedRef<IPlugin>& Plugin : IPluginManager::Get().GetDiscoveredPlugins())
 	{
-		Log(FString::Printf(TEXT("Adding plugin %s"), *Plugin->GetName()));
-		
 		// Only get plugins that are a part of the game project
 		if (Plugin->GetLoadedFrom() == EPluginLoadedFrom::Project)
 		{
+			Log(FString::Printf(TEXT("Adding modules from plugin plugin %s"), *Plugin->GetName()));
+
 			FPluginModel PluginModel(FName(*Plugin->GetName()), Plugin->GetDescriptor().VersionName);
 			for (const FModuleDescriptor& PluginModule : Plugin->GetDescriptor().Modules)
 			{

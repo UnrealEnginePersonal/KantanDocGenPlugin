@@ -15,16 +15,16 @@
 #include "ISourceObjectEnumerator.h"
 
 template <typename TChildEnum>
-class FCompositeEnumerator : public ISourceObjectEnumerator
+class TCompositeEnumerator final: public ISourceObjectEnumerator
 {
 public:
-	FCompositeEnumerator(const TArray<FName>& InNames)
+	explicit TCompositeEnumerator(const TArray<FName>& InNames)
 	{
 		CurEnumIndex = 0;
 		TotalSize = 0;
 		Completed = 0;
 
-		Prepass(InNames);
+		PrePass(InNames);
 	}
 
 public:
@@ -67,7 +67,7 @@ public:
 	}
 
 protected:
-	void Prepass(const TArray<FName>& Names)
+	void PrePass(const TArray<FName>& Names)
 	{
 		for (auto Name : Names)
 		{

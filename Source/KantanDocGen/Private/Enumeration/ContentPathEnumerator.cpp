@@ -9,7 +9,6 @@
 // **/
 
 #include "ContentPathEnumerator.h"
-#include "KantanDocGenLog.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/ARFilter.h"
 #include "Engine/Blueprint.h"
@@ -19,10 +18,10 @@ FContentPathEnumerator::FContentPathEnumerator(const FName& InPath)
 {
 	CurIndex = 0;
 
-	Prepass(InPath);
+	PrePass(InPath);
 }
 
-void FContentPathEnumerator::Prepass(const FName& Path)
+void FContentPathEnumerator::PrePass(const FName& Path)
 {
 	auto& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	auto& AssetRegistry = AssetRegistryModule.Get();
@@ -49,9 +48,6 @@ UObject* FContentPathEnumerator::GetNext()
 
 		if (auto Blueprint = Cast<UBlueprint>(AssetData.GetAsset()))
 		{
-			UE_LOG(LogKantanDocGen, Log, TEXT("Enumerating object '%s' at '%s'"), *Blueprint->GetName(),
-			       *AssetData.GetObjectPathString());
-
 			Result = Blueprint;
 			break;
 		}
@@ -62,7 +58,7 @@ UObject* FContentPathEnumerator::GetNext()
 
 float FContentPathEnumerator::EstimateProgress() const
 {
-	return (float)CurIndex / (AssetList.Num() - 1);
+	return static_cast<float>(CurIndex) / (AssetList.Num() - 1);
 }
 
 int32 FContentPathEnumerator::EstimatedSize() const

@@ -13,12 +13,11 @@
 #include "CoreMinimal.h"
 
 #include "ISourceObjectEnumerator.h"
-#include "AssetRegistry/AssetData.h"
 
-class FContentPathEnumerator : public ISourceObjectEnumerator
+class FContentPathEnumerator final : public ISourceObjectEnumerator
 {
 public:
-	FContentPathEnumerator(const FName& InPath);
+	explicit FContentPathEnumerator(const FName& InPath);
 
 public:
 	virtual UObject* GetNext() override;
@@ -26,7 +25,7 @@ public:
 	virtual int32 EstimatedSize() const override;
 
 protected:
-	void Prepass(const FName& Path);
+	void PrePass(const FName& Path);
 
 protected:
 	TArray<FAssetData> AssetList;

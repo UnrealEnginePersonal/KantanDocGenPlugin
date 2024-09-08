@@ -8,9 +8,8 @@ namespace Kds::DocGen::Models
 {
 	FClassModel::FClassModel(const FString& InDocsName, const FString& InId, const FName& InDisplayName,
 							 const FString& InDescription) :
-
-		FBaseModel(InDisplayName, InDescription), DocsName(InDocsName), IncludePath(),  Properties(),Id(InId), Events(),
-		Functions()
+		FBaseModel(InDisplayName, InDescription), DocsName(InDocsName), IncludePath(),  Properties(), Events(), Functions(),
+		Id(InId)
 	{
 	}
 

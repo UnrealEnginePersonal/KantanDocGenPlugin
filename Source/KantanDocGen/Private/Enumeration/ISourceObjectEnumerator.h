@@ -12,10 +12,6 @@
 
 #include "CoreMinimal.h"
 
-#include "CoreMinimal.h"
-
-class UObject;
-
 class ISourceObjectEnumerator
 {
 public:

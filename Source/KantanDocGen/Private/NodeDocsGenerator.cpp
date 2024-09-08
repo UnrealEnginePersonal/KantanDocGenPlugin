@@ -38,6 +38,7 @@
 #include "AnimGraphNode_Base.h"
 
 #include "Models/ClassModel.h"
+#include "Models/FunctionModel.h"
 
 #include "Generators/Writer.h"
 
@@ -122,9 +123,9 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 {
 	UK2Node* K2NodeInst = nullptr;
 	const bool bIsDocumentable = CanBeDocumented(Spawner, SourceObject);
-
+	const FString& Name  = SourceObject->GetName();
 	UE_LOG(LogKantanDocGen, Log, TEXT("Initializing for spawner %s..."), *GetNameSafe(Spawner));
-	UE_LOG(LogKantanDocGen, Log, TEXT("Source object is %s..."), *GetNameSafe(SourceObject));
+	UE_LOG(LogKantanDocGen, Log, TEXT("Source object is %s..."), *Name);
 	UE_LOG(LogKantanDocGen, Log, TEXT("Source object class is %s..."), *GetNameSafe(SourceObject->GetClass()));
 	UE_LOG(LogKantanDocGen, Log, TEXT("Source object file path is %s..."), *SourceObject->GetPathName());
 	UE_LOG(LogKantanDocGen, Log, TEXT("Documentable: %s"), bIsDocumentable ? TEXT("true") : TEXT("false"));
@@ -133,7 +134,7 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 	// This will be a null pointer if the spawner is not documentable
 	if (bIsDocumentable)
 	{
-		auto NodeInst = Spawner->Invoke(Graph.Get(), IBlueprintNodeBinder::FBindingSet{}, FVector2D(0, 0));
+		const auto NodeInst = Spawner->Invoke(Graph.Get(), IBlueprintNodeBinder::FBindingSet{}, FVector2D(0, 0));
 		// Currently Blueprint nodes only
 		K2NodeInst = Cast<UK2Node>(NodeInst);
 		if (K2NodeInst == nullptr)
@@ -368,11 +369,31 @@ bool ExtractPinInformation(const UEdGraphPin* Pin, FString& OutName, FString& Ou
 	return File;
 }*/
 
+inline static FPropertyModel CreatePropertyModel(const FProperty* Prop)
+{
+	const FName DisplayName = FName(*Prop->GetDisplayNameText().ToString());
+	const FString Description = Prop->GetToolTipText().ToString();
+	const auto CPPType = Prop->GetCPPType();
+	const auto CPPForwardDeclare = Prop->GetCPPTypeForwardDeclaration();
+	const auto DisplayType = Prop->GetCPPType();
+
+	FPropertyModel PropertyModel(DisplayName, Description);
+	PropertyModel.RawDescription = Description;
+	PropertyModel.RawShortDescription = Description;
+	PropertyModel.Tooltip = Description;
+	PropertyModel.CPPType = CPPType;
+	PropertyModel.CPPTypeForwardDeclaration = CPPForwardDeclare;
+	PropertyModel.Type = DisplayType;
+	PropertyModel.DisplayType = DisplayType;
+
+	return PropertyModel;
+}
+
 TSharedPtr<Models::FClassModel> FNodeDocsGenerator::InitClassDocXml(const UClass* Class, const FString& InDocsTitle)
 {
 	UE_LOG(LogKantanDocGen, Log, TEXT("Initializing class doc xml for %s..."), *Class->GetName());
 
-	TSharedPtr<Models::FClassModel> Model =
+	TSharedPtr<Models::FClassModel> ClassModel =
 		MakeShared<Models::FClassModel>(InDocsTitle, GetClassDocId(Class), FName(FClassUtils::GetClassDocName(Class)),
 										FClassUtils::GetClassDescription(Class));
 
@@ -385,7 +406,7 @@ TSharedPtr<Models::FClassModel> FNodeDocsGenerator::InitClassDocXml(const UClass
 		Path.RemoveFromEnd("." + Class->GetName());
 	}
 
-	Model->IncludePath = Path;
+	ClassModel->IncludePath = Path;
 	const UClass* Parent = Class->GetSuperClass();
 	FString ClassTreeStr = *FClassUtils::GetClassDocName(Class);
 
@@ -396,24 +417,71 @@ TSharedPtr<Models::FClassModel> FNodeDocsGenerator::InitClassDocXml(const UClass
 	}
 
 	// AppendChildCDATA(Root, TEXT("classTree"), ClassTreeStr);
-	Model->ClassTree = ClassTreeStr;
+	ClassModel->ClassTree = ClassTreeStr;
 
 	// FXmlNode* Props = AppendChild(Root, TEXT("properties"));
 	for (TFieldIterator<FProperty> It(Class, EFieldIteratorFlags::ExcludeSuper); It; ++It)
 	{
 		if ((It->PropertyFlags & (CPF_BlueprintVisible | CPF_Edit)) != 0)
 		{
-			const FName DisplayName = FName(*It->GetDisplayNameText().ToString());
+			/*const FName DisplayName = FName(*It->GetDisplayNameText().ToString());
 			const FString Description = It->GetToolTipText().ToString();
-
-			TSharedPtr<Models::FPropertyModel> Property = MakeShared<Models::FPropertyModel>(DisplayName, Description);
-			Property->Type = It->GetCPPType();
-
-			Model->AddProperty(MoveTemp(*Property));
+			const auto CPPType = It->GetCPPType();
+			const auto CPPForwardDeclare = It->GetCPPTypeForwardDeclaration();
+			const auto DisplayType = It->GetCPPType();
+			
+			// Create a property model for the parameter
+			FPropertyModel PropertyModel(DisplayName, Description);
+			PropertyModel.RawDescription = Description;
+			PropertyModel.RawShortDescription = Description;
+			PropertyModel.Tooltip = Description;
+			PropertyModel.CPPType = CPPType;
+			PropertyModel.CPPTypeForwardDeclaration = CPPForwardDeclare;
+			PropertyModel.Type = DisplayType;
+			PropertyModel.DisplayType = DisplayType;
+			*/
+			const FProperty* Prop = *It;
+			const FPropertyModel PropertyModel = CreatePropertyModel(Prop);			
+			ClassModel->AddProperty(PropertyModel);
 		}
 	}
 
-	return Model;
+	/**
+	 *	Documenting function
+	 */
+	for (TFieldIterator<UFunction> It(Class, EFieldIteratorFlags::ExcludeSuper); It; ++It)
+	{
+		const UFunction* Function = *It;
+
+		// Extract basic function information
+		const FName FunctionName = Function->GetFName();
+		const FString FunctionFullName = Function->GetPathName();
+		const FString FunctionDisplayName = Function->GetDisplayNameText().ToString();
+		const FString FunctionDescription = Function->GetToolTipText().ToString();
+
+		// Check blueprint-related properties
+		bool bBlueprintCallable = Function->HasAnyFunctionFlags(FUNC_BlueprintCallable);
+		bool bBlueprintPure = Function->HasAnyFunctionFlags(FUNC_BlueprintPure);
+		bool bBlueprintEvent = Function->HasAnyFunctionFlags(FUNC_BlueprintEvent);
+
+		// Create a function model
+		FFunctionModel FunctionModel = FFunctionModel(FunctionName, FunctionFullName, FunctionDescription, 
+			FString(), bBlueprintCallable, bBlueprintPure, bBlueprintEvent);
+
+		// Process function parameters
+		for (TFieldIterator<FProperty> ParamIt(Function); ParamIt; ++ParamIt)
+		{
+			
+			const FProperty* Param = *ParamIt;
+			const FPropertyModel ParamModel = CreatePropertyModel(Param);
+			FunctionModel.AddParameter(ParamModel);
+		}
+
+		// Add the function model to the class model
+		ClassModel->AddFunction(FunctionModel);
+	}
+
+	return ClassModel;
 }
 
 bool FNodeDocsGenerator::UpdateIndexDocWithClass(FWriter* DocFile, const UClass* Class, UObject* SourceObject)

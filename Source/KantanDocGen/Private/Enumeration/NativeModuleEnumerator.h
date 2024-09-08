@@ -14,10 +14,10 @@
 
 #include "ISourceObjectEnumerator.h"
 
-class FNativeModuleEnumerator : public ISourceObjectEnumerator
+class FNativeModuleEnumerator final : public ISourceObjectEnumerator
 {
 public:
-	FNativeModuleEnumerator(const FName& InModuleName);
+	explicit FNativeModuleEnumerator(const FName& InModuleName);
 
 public:
 	virtual UObject* GetNext() override;
@@ -25,9 +25,9 @@ public:
 	virtual int32 EstimatedSize() const override;
 
 protected:
-	void Prepass(const FName& ModuleName);
+	void PrePass(const FName& ModuleName);
 
 protected:
-	TArray<TWeakObjectPtr<UObject>> ObjectList;
+	TArray<TWeakObjectPtr<>> ObjectList;
 	int32 CurIndex;
 };
