@@ -16,12 +16,6 @@
 
 namespace Kds::DocGen
 {
-	FDoc::FDoc(const FString& InModuleName, const FString& InModuleSourcePath, const FString& InModuleType) :
-		ModuleName(InModuleName), ModuleSourcePath(InModuleSourcePath), ModuleType(InModuleType), Classes()
-	{
-		// Setup
-	}
-
 	FWriter::FWriter(const FString& InDocsTitle, const FString& InOutputDir) :
 		DocsTitle(InDocsTitle), OutputDir(InOutputDir)
 	{
@@ -51,6 +45,7 @@ namespace Kds::DocGen
 			UE_LOG(LogTemp, Warning, TEXT("No classes to save"));
 			return;
 		}
+		
 		FJsonObject JsonObject;		
 		const FString ModuleName = this->GetDocsTitle();
 		const FString ModuleSourcePath = "TODO";

@@ -2,11 +2,22 @@
 namespace Kds::DocGen::Models
 {
 
-	FPluginModel::FPluginModel(const FName& InName, const FString& InDescription) :
-		FBaseModel(InName, InDescription), ContentPath("/" + InName.ToString())
+	FPluginModel::FPluginModel(const FName& InName, const FString& InDescription, const FString& InBaseDiskDir):
+		FBaseModel(InName, InDescription), ContentPath("/" + InName.ToString()), BaseDiskDir(InBaseDiskDir)
 	{
 	}
-	
+
+
+	FString FPluginModel::GetSourcePath() const
+	{
+		static const FString SourceFolder = "Source";
+		if(BaseDiskDir.EndsWith("/"))
+		{
+			return BaseDiskDir + SourceFolder;
+		}
+
+		return BaseDiskDir + "/" + SourceFolder;
+	}
 	
 	const FDirectoryPath& FPluginModel::GetPath() const
 	{

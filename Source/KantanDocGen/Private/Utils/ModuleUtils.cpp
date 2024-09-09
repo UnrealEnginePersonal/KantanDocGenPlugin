@@ -50,12 +50,12 @@ void FModuleUtils::Initialize()
 		if (Plugin->GetLoadedFrom() == EPluginLoadedFrom::Project)
 		{
 			Log(FString::Printf(TEXT("Adding modules from plugin plugin %s"), *Plugin->GetName()));
+			const FString PluginBaseDir = FPaths::ConvertRelativePathToFull(Plugin->GetBaseDir());
 
-			FPluginModel PluginModel(FName(*Plugin->GetName()), Plugin->GetDescriptor().VersionName);
+			FPluginModel PluginModel(FName(*Plugin->GetName()), Plugin->GetDescriptor().VersionName, PluginBaseDir);
 			for (const FModuleDescriptor& PluginModule : Plugin->GetDescriptor().Modules)
 			{
-				Log(FString::Printf(TEXT("Adding module %s from plugin %s"), *PluginModule.Name.ToString(),
-									*Plugin->GetName()));
+				Log(FString::Printf(TEXT("Adding module %s from plugin %s"), *PluginModule.Name.ToString(), *Plugin->GetName()));
 				PluginModel.AddModule(PluginModule);
 			}
 			Plugins.Add(std::make_shared<FPluginModel>(PluginModel));

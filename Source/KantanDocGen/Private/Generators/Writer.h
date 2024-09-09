@@ -17,18 +17,6 @@ namespace Kds::DocGen
 		struct FClassModel;
 	}
 
-	struct FDoc
-	{
-	public:
-		explicit FDoc(const FString& InModuleName, const FString& InModuleSourcePath, const FString& InModuleType);
-
-	private:
-		const FString ModuleName;
-		const FString ModuleSourcePath;
-		const FString ModuleType;
-		
-		TArray<TSharedPtr<Models::FClassModel>> Classes;
-	};
 
 	class FWriter
 	{
@@ -47,8 +35,8 @@ namespace Kds::DocGen
 		FString GetOutputDir() const;
 
 	private:
-		FString DocsTitle;
-		FString OutputDir;
+		const FString DocsTitle;
+		const FString OutputDir;
 
 		TMap<TWeakObjectPtr<UClass>, TSharedPtr<Models::FClassModel>> ClassDocsMap;
 	};

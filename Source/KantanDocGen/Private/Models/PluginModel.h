@@ -19,11 +19,12 @@ namespace Kds::DocGen::Models
 	struct FPluginModel final :  FBaseModel
 	{
 	public:
-		FPluginModel(const FName& InName, const FString& InDescription);
+		FPluginModel(const FName& InName, const FString& InDescription, const FString& InBaseDiskDir);
 
 		virtual ~FPluginModel() override = default;
 		
 	public:
+		FString GetSourcePath() const;
 		const FDirectoryPath& GetPath() const;
 		const TArray<TSharedPtr<FModuleDescriptor>>& GetModules() const;
 		
@@ -32,6 +33,7 @@ namespace Kds::DocGen::Models
 		virtual FJsonObject ToJson() const override;
 		
 	private:
+		const FString BaseDiskDir;
 		const FDirectoryPath ContentPath;
 		TArray<TSharedPtr<FModuleDescriptor>> Modules;
 	};

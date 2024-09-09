@@ -23,6 +23,8 @@ namespace Kds::DocGen
 			TArray<FString> GetPluginNames();
 			TArray<FName> GetPluginNamesAsFName();
 
+			const FString GetPluginSourceDirectory(const FString& PluginName) const;
+
 			const TArray<std::shared_ptr<Models::FPluginModel>>& GetPlugins() const;
 		private:
 			// Make the constructor private to prevent external instantiation

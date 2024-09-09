@@ -54,7 +54,7 @@ public:
 
 	bool GT_Finalize(const FString& OutputPath);
 
-	UK2Node* GT_DocumentSimpleObject(UObject* SourceObject, FNodeProcessingState& OutState);
+	UK2Node* GT_DocumentSimpleObject(UObject* SourceObject, const bool bExcludeSuper, FNodeProcessingState& OutState);
 
 	UK2Node* GT_InitializeForSpawner(UBlueprintNodeSpawner* Spawner, UObject* SourceObject, const bool bExcludeSuper,
 									 FNodeProcessingState& OutState);

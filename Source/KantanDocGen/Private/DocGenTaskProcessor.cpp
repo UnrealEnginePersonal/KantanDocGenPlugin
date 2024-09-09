@@ -274,7 +274,8 @@ void FDocGenTaskProcessor::ProcessTask(const TSharedPtr<FDocGenTask>& InTask)
 		if (Current->CurrentSpawners.IsEmpty())
 		{
 			Log(FString::Printf(TEXT("Trying to document simple object %s"), *Current->SourceObject->GetName()));
-			return Current->DocGen->GT_DocumentSimpleObject(Current->SourceObject.Get(), OutState);
+			return Current->DocGen->GT_DocumentSimpleObject(Current->SourceObject.Get(),
+				Current.Get()->Task->Settings.bExcludeSuperClass, OutState);
 		}
 
 		// Try to grab the next spawner in the cached list
@@ -466,7 +467,7 @@ FDocGenTaskProcessor::ProcessIntermediateDocs(const FString& IntermediateDir, co
 
 	//TODO: Check if were going to do something with this
 	return EIntermediateProcessingResult::Success;
-	
+
 	auto& PluginManager = IPluginManager::Get();
 	const auto Plugin = PluginManager.FindPlugin(TEXT("KantanDocGen"));
 	if (!Plugin.IsValid())

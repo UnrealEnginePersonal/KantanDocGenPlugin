@@ -93,7 +93,8 @@ bool FNodeDocsGenerator::GT_Init(const FString& InDocsTitle, const FString& InOu
 	return true;
 }
 
-UK2Node* FNodeDocsGenerator::GT_DocumentSimpleObject(UObject* SourceObject, FNodeProcessingState& OutState)
+UK2Node* FNodeDocsGenerator::GT_DocumentSimpleObject(UObject* SourceObject, const bool bExcludeSuper,
+													 FNodeProcessingState& OutState)
 {
 	UE_LOG(LogKantanDocGen, Log, TEXT("Documenting object %s..."), *GetNameSafe(SourceObject));
 
@@ -116,11 +117,11 @@ UK2Node* FNodeDocsGenerator::GT_DocumentSimpleObject(UObject* SourceObject, FNod
 	}
 
 	// InitializeForSpawner supports "nullptr" spawner for simple classes (handled gracefully in IsSpawnerDocumentable)
-	return GT_InitializeForSpawner(nullptr, SourceObject, OutState);
+	return GT_InitializeForSpawner(nullptr, SourceObject, bExcludeSuper, OutState);
 }
 
-UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spawner, UObject* SourceObject, const bool bExcludeSuper,
-													 FNodeProcessingState& OutState)
+UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spawner, UObject* SourceObject,
+													 const bool bExcludeSuper, FNodeProcessingState& OutState)
 {
 	UK2Node* K2NodeInst = nullptr;
 	const bool bIsDocumentable = CanBeDocumented(Spawner, SourceObject);
@@ -146,7 +147,7 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 
 	if (!Writer->Contains(AssociatedClass))
 	{
-		const TSharedPtr<Models::FClassModel> GeneratedModel = InitClassDocXml(AssociatedClass,bExcludeSuper); 
+		const TSharedPtr<Models::FClassModel> GeneratedModel = InitClassDocXml(AssociatedClass, bExcludeSuper);
 		Writer->AddClass(AssociatedClass, GeneratedModel);
 		UpdateIndexDocWithClass(Writer.Get(), AssociatedClass, SourceObject);
 	}
@@ -317,7 +318,6 @@ bool ExtractPinInformation(const UEdGraphPin* Pin, FString& OutName, FString& Ou
 	}
 
 	// @NOTE: Currently overwriting the name and type as suspect this is more robust to future engine changes.
-
 	OutName = Pin->GetDisplayName().ToString();
 	if (OutName.IsEmpty() && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
 	{
@@ -351,24 +351,16 @@ inline static FPropertyModel CreatePropertyModel(const FProperty* Prop)
 
 static Kds::DocGen::Models::FFunctionModel CreateFunctionModel(const UFunction* Function)
 {
-	// Extract basic function information
-	const FName FunctionName = FFunctionUtils::GetFunctionName(Function);
-	const FString FunctionFullName = FFunctionUtils::GetFunctionFullName(Function);
-	const FString FunctionDisplayName = FFunctionUtils::GetFunctionDisplayName(Function);
-	const FString FunctionDescription = FFunctionUtils::GetFunctionDescription(Function);
-	const FString FunctionRawDescription = FFunctionUtils::GetFunctionRawDescription(Function);
-	const FString FunctionRawShortDescription = FFunctionUtils::GetFunctionRawShortDescription(Function);
-
 	// Check blueprint-related properties
 	bool bBlueprintCallable = Function->HasAnyFunctionFlags(FUNC_BlueprintCallable);
 	bool bBlueprintPure = Function->HasAnyFunctionFlags(FUNC_BlueprintPure);
 	bool bBlueprintEvent = Function->HasAnyFunctionFlags(FUNC_BlueprintEvent);
 
 	// Create function model
-	Kds::DocGen::Models::FFunctionModel FunctionModel(FunctionName, FunctionDescription);
-	FunctionModel.DisplayName = FunctionDisplayName;
-	FunctionModel.RawDescription = FunctionRawDescription;
-	FunctionModel.RawShortDescription = FunctionRawShortDescription;
+	Kds::DocGen::Models::FFunctionModel FunctionModel(FFunctionUtils::GetFunctionName(Function),  FFunctionUtils::GetFunctionDescription(Function));
+	FunctionModel.DisplayName = FFunctionUtils::GetFunctionDisplayName(Function);
+	FunctionModel.RawDescription = FFunctionUtils::GetFunctionRawDescription(Function);
+	FunctionModel.RawShortDescription = FFunctionUtils::GetFunctionRawShortDescription(Function);
 
 	FunctionModel.bBlueprintCallable = bBlueprintCallable;
 	FunctionModel.bBlueprintPure = bBlueprintPure;
@@ -398,8 +390,11 @@ TSharedPtr<Models::FClassModel> FNodeDocsGenerator::InitClassDocXml(const UClass
 	ClassModel->IncludePath = FClassUtils::GetClassIncludePath(Class);
 	ClassModel->ClassTree = FClassUtils::GetClassTree(Class);
 
-	const EFieldIterationFlags FieldIterationFlags =
-		bExcludeSuper ? EFieldIteratorFlags::ExcludeSuper : EFieldIterationFlags::IncludeSuper;
+	auto FieldIterationFlags = EFieldIteratorFlags::ExcludeSuper;
+	if(!bExcludeSuper)
+	{
+		FieldIterationFlags = EFieldIteratorFlags::IncludeSuper;	
+	}
 
 	// Process Properties
 	for (TFieldIterator<FProperty> It(Class, FieldIterationFlags); It; ++It)
@@ -566,8 +561,7 @@ bool FNodeDocsGenerator::GenerateNodeDocs(UK2Node* Node, FNodeProcessingState& S
 	AppendChildCDATA(Root, TEXT("docs_name"), DocsTitle);
 	// Since we pull these from the class xml file, the entries are already CDATA wrapped
 	AppendChildRaw(Root, TEXT("class_id"), State.ClassDocXml->GetRootNode()->FindChildNode(TEXT("id"))->GetContent());
-	AppendChildRaw(Root, TEXT("class_name"),
-				   State.ClassDocXml->GetRootNode()->FindChildNode(TEXT("display_name"))->GetContent());
+	AppendChildRaw(Root, TEXT("class_name"), State.ClassDocXml->GetRootNode()->FindChildNode(TEXT("display_name"))->GetContent());
 
 	FString NodeShortTitle = Node->GetNodeTitle(ENodeTitleType::ListView).ToString();
 	AppendChildCDATA(Root, TEXT("shorttitle"), NodeShortTitle.TrimEnd());

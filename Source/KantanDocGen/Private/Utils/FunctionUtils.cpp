@@ -1,9 +1,5 @@
 ﻿#include "FunctionUtils.h"
 
-#include "Kismet2/BlueprintEditorUtils.h"
-#include "Models/FunctionModel.h"
-
-
 FName FFunctionUtils::GetFunctionName(const UFunction* Function)
 {
 	return Function->GetFName();
