@@ -14,6 +14,12 @@
 class FFunctionUtils
 {
 public:
+	static FName GetFunctionName(const UFunction* Function);
 	
-	
+	static FString GetFunctionFullName(const UFunction* Function);
+	static FString GetFunctionNameString(const UFunction* Function);
+	static FString GetFunctionDisplayName(const UFunction* Function);
+	static FString GetFunctionDescription(const UFunction* Function);	
+	static FString GetFunctionRawDescription(const UFunction* Function);
+	static FString GetFunctionRawShortDescription(const UFunction* Function);
 };

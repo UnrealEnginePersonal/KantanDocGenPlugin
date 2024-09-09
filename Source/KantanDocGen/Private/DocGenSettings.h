@@ -52,6 +52,11 @@ public:
 			  Meta = (EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
 	FString DocumentationTitle;
 
+	/** Exclude The Super Class from the documentation */
+	UPROPERTY(EditAnywhere, Category = "Documentation",
+			  Meta = (EditCondition = "GenerationMethod==EGenMethod::Manual", EditConditionHides))
+	bool bExcludeSuperClass = true;
+
 	/** List of C++ modules in which to search for blueprint-exposed classes to document. */
 	UPROPERTY(EditAnywhere, Category = "Class Search",
 			  Meta = (Tooltip = "Raw module names (Do not prefix with '/Script').",
@@ -80,6 +85,7 @@ public:
 	FKantanDocGenSettings()
 	{
 		BlueprintContextClass = AActor::StaticClass();
+		bExcludeSuperClass = true;
 		bCleanOutputDirectory = false;
 		ExportMethod = EExportMethod::XML;
 	}

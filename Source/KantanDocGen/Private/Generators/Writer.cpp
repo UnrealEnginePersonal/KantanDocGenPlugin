@@ -76,10 +76,12 @@ namespace Kds::DocGen
 		FString OutputString;
 		const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
 		FJsonSerializer::Serialize(MakeShared<FJsonObject>(JsonObject), Writer);
-
+		
+		const FString OutputPath = FPaths::Combine(OutputDir, ModuleName + ".json");
+		UE_LOG(LogKantanDocGen, Log, TEXT("OutputPath: %s"), *OutputPath);
+		
 		// Write JSON string to file
-		if (const FString OutputPath = FPaths::Combine(OutputDir, ModuleName + ".json");
-			FFileHelper::SaveStringToFile(OutputString, *OutputPath))
+		if (FFileHelper::SaveStringToFile(OutputString, *OutputPath))
 		{
 			UE_LOG(LogKantanDocGen, Log, TEXT("Successfully saved JSON file: %s"), *OutputPath);
 		}

@@ -56,7 +56,7 @@ public:
 
 	UK2Node* GT_DocumentSimpleObject(UObject* SourceObject, FNodeProcessingState& OutState);
 
-	UK2Node* GT_InitializeForSpawner(UBlueprintNodeSpawner* Spawner, UObject* SourceObject,
+	UK2Node* GT_InitializeForSpawner(UBlueprintNodeSpawner* Spawner, UObject* SourceObject, const bool bExcludeSuper,
 									 FNodeProcessingState& OutState);
 	/**/
 	/** Callable from background thread */
@@ -77,8 +77,8 @@ protected:
 
 	/*static TSharedPtr<FWriter> InitIndexXml(const FString& IndexTitle);*/
 	static TSharedPtr<Kds::DocGen::Models::FClassModel> InitClassDocXml(const UClass* Class,
-																		const FString& InDocsTitle);
-
+																		const bool bExcludeSuper);
+	
 	static void AdjustNodeForSnapshot(const UEdGraphNode* Node);	
 	static FString GetNodeDocId(const UEdGraphNode* Node);
 	static UClass* GetAssociatedClass(UK2Node* NodeInst, UObject* Source);

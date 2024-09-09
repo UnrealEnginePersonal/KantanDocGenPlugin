@@ -44,6 +44,7 @@
 
 #include "Utils/ClassUtils.h"
 #include "Models/PropertyModel.h"
+#include "Utils/FunctionUtils.h"
 
 using namespace Kds::DocGen;
 using namespace Kds::DocGen::Models;
@@ -118,17 +119,11 @@ UK2Node* FNodeDocsGenerator::GT_DocumentSimpleObject(UObject* SourceObject, FNod
 	return GT_InitializeForSpawner(nullptr, SourceObject, OutState);
 }
 
-UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spawner, UObject* SourceObject,
+UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spawner, UObject* SourceObject, const bool bExcludeSuper,
 													 FNodeProcessingState& OutState)
 {
 	UK2Node* K2NodeInst = nullptr;
 	const bool bIsDocumentable = CanBeDocumented(Spawner, SourceObject);
-	const FString& Name = SourceObject->GetName();
-	UE_LOG(LogKantanDocGen, Log, TEXT("Initializing for spawner %s..."), *GetNameSafe(Spawner));
-	UE_LOG(LogKantanDocGen, Log, TEXT("Source object is %s..."), *Name);
-	UE_LOG(LogKantanDocGen, Log, TEXT("Source object class is %s..."), *GetNameSafe(SourceObject->GetClass()));
-	UE_LOG(LogKantanDocGen, Log, TEXT("Source object file path is %s..."), *SourceObject->GetPathName());
-	UE_LOG(LogKantanDocGen, Log, TEXT("Documentable: %s"), bIsDocumentable ? TEXT("true") : TEXT("false"));
 
 	// Try to create a node from the spawner if it is documentable,
 	// This will be a null pointer if the spawner is not documentable
@@ -140,8 +135,7 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 		if (K2NodeInst == nullptr)
 		{
 			UE_LOG(LogKantanDocGen, Warning,
-				   TEXT("Failed to create node from spawner of class %s with node class"
-						" %s (Object %s)."),
+				   TEXT("Failed to create node from spawner of class %s with node class %s (Object %s)."),
 				   *Spawner->GetClass()->GetName(), Spawner->NodeClass ? *Spawner->NodeClass->GetName() : TEXT("None"),
 				   *GetNameSafe(SourceObject));
 			return nullptr;
@@ -152,8 +146,7 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 
 	if (!Writer->Contains(AssociatedClass))
 	{
-		// New class xml file needs adding
-		const TSharedPtr<Models::FClassModel> GeneratedModel = InitClassDocXml(AssociatedClass, Writer->GetDocsTitle());
+		const TSharedPtr<Models::FClassModel> GeneratedModel = InitClassDocXml(AssociatedClass,bExcludeSuper); 
 		Writer->AddClass(AssociatedClass, GeneratedModel);
 		UpdateIndexDocWithClass(Writer.Get(), AssociatedClass, SourceObject);
 	}
@@ -356,22 +349,30 @@ inline static FPropertyModel CreatePropertyModel(const FProperty* Prop)
 	return PropertyModel;
 }
 
-static FFunctionModel CreateFunctionModel(const UFunction* Function)
+static Kds::DocGen::Models::FFunctionModel CreateFunctionModel(const UFunction* Function)
 {
 	// Extract basic function information
-	const FName FunctionName = Function->GetFName();
-	const FString FunctionFullName = Function->GetPathName();
-	const FString FunctionDisplayName = Function->GetDisplayNameText().ToString();
-	const FString FunctionDescription = Function->GetToolTipText().ToString();
+	const FName FunctionName = FFunctionUtils::GetFunctionName(Function);
+	const FString FunctionFullName = FFunctionUtils::GetFunctionFullName(Function);
+	const FString FunctionDisplayName = FFunctionUtils::GetFunctionDisplayName(Function);
+	const FString FunctionDescription = FFunctionUtils::GetFunctionDescription(Function);
+	const FString FunctionRawDescription = FFunctionUtils::GetFunctionRawDescription(Function);
+	const FString FunctionRawShortDescription = FFunctionUtils::GetFunctionRawShortDescription(Function);
 
 	// Check blueprint-related properties
 	bool bBlueprintCallable = Function->HasAnyFunctionFlags(FUNC_BlueprintCallable);
 	bool bBlueprintPure = Function->HasAnyFunctionFlags(FUNC_BlueprintPure);
 	bool bBlueprintEvent = Function->HasAnyFunctionFlags(FUNC_BlueprintEvent);
 
-	// Create a function model
-	FFunctionModel FunctionModel = FFunctionModel(FunctionName, FunctionFullName, FunctionDescription, FString(),
-												  bBlueprintCallable, bBlueprintPure, bBlueprintEvent);
+	// Create function model
+	Kds::DocGen::Models::FFunctionModel FunctionModel(FunctionName, FunctionDescription);
+	FunctionModel.DisplayName = FunctionDisplayName;
+	FunctionModel.RawDescription = FunctionRawDescription;
+	FunctionModel.RawShortDescription = FunctionRawShortDescription;
+
+	FunctionModel.bBlueprintCallable = bBlueprintCallable;
+	FunctionModel.bBlueprintPure = bBlueprintPure;
+	FunctionModel.bBlueprintEvent = bBlueprintEvent;
 
 	// Process function parameters
 	for (TFieldIterator<FProperty> ParamIt(Function); ParamIt; ++ParamIt)
@@ -385,28 +386,31 @@ static FFunctionModel CreateFunctionModel(const UFunction* Function)
 }
 
 
-TSharedPtr<Models::FClassModel> FNodeDocsGenerator::InitClassDocXml(const UClass* Class, const FString& InDocsTitle)
+TSharedPtr<Models::FClassModel> FNodeDocsGenerator::InitClassDocXml(const UClass* Class, const bool bExcludeSuper)
 {
 	UE_LOG(LogKantanDocGen, Log, TEXT("Initializing class doc xml for %s..."), *Class->GetName());
 
 	const FName ClassName = FClassUtils::GetClassName(Class);
-	const FString ClassDescription = FClassUtils::GetClassDescription(Class);	
-	const auto ClassModel = MakeShared<FClassModel>(ClassName, ClassDescription);			
+	const FString ClassDescription = FClassUtils::GetClassDescription(Class);
+	const auto ClassModel = MakeShared<FClassModel>(ClassName, ClassDescription);
 
-	ClassModel->DisplayName =  FClassUtils::GetClassDisplayName(Class);	
+	ClassModel->DisplayName = FClassUtils::GetClassDisplayName(Class);
 	ClassModel->IncludePath = FClassUtils::GetClassIncludePath(Class);
 	ClassModel->ClassTree = FClassUtils::GetClassTree(Class);
 
+	const EFieldIterationFlags FieldIterationFlags =
+		bExcludeSuper ? EFieldIteratorFlags::ExcludeSuper : EFieldIterationFlags::IncludeSuper;
+
 	// Process Properties
-	for (TFieldIterator<FProperty> It(Class, EFieldIteratorFlags::IncludeSuper); It; ++It)
+	for (TFieldIterator<FProperty> It(Class, FieldIterationFlags); It; ++It)
 	{
 		const FProperty* Prop = *It;
 		const FPropertyModel PropertyModel = CreatePropertyModel(Prop);
-		ClassModel->AddProperty(PropertyModel);		
+		ClassModel->AddProperty(PropertyModel);
 	}
 
 	// Process Functions
-	for (TFieldIterator<UFunction> It(Class, EFieldIteratorFlags::IncludeSuper); It; ++It)
+	for (TFieldIterator<UFunction> It(Class, FieldIterationFlags); It; ++It)
 	{
 		if (const UFunction* Function = *It; !Function->HasAnyFunctionFlags(FUNC_Event))
 		{
@@ -416,7 +420,7 @@ TSharedPtr<Models::FClassModel> FNodeDocsGenerator::InitClassDocXml(const UClass
 	}
 
 	// Process Events
-	for (TFieldIterator<UFunction> It(Class, EFieldIteratorFlags::IncludeSuper); It; ++It)
+	for (TFieldIterator<UFunction> It(Class, FieldIterationFlags); It; ++It)
 	{
 		if (const UFunction* Function = *It; Function->HasAnyFunctionFlags(FUNC_Event))
 		{

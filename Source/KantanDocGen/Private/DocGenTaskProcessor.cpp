@@ -84,7 +84,7 @@ void FDocGenTaskProcessor::QueueTask(const FKantanDocGenSettings& Settings)
 		const FProjectDescriptor* const CurrentProject = IProjectManager::Get().GetCurrentProject();
 
 		check(CurrentProject);
-		
+
 		// Add plugins
 		if (EGenMethod::Plugins == Settings.GenerationMethod
 			|| EGenMethod::ProjectAndPlugins == Settings.GenerationMethod)
@@ -137,7 +137,7 @@ void FDocGenTaskProcessor::QueueTask(const FKantanDocGenSettings& Settings)
 	TaskInfo.bUseLargeFont = true;
 	TaskInfo.bFireAndForget = false;
 	TaskInfo.bAllowThrottleWhenFrameRateIsLow = false;
-	
+
 	// Queue generation for every requested settings
 	for (const FKantanDocGenSettings& Setting : SettingsList)
 	{
@@ -192,7 +192,6 @@ void FDocGenTaskProcessor::ProcessTask(const TSharedPtr<FDocGenTask>& InTask)
 	/********** Lambdas for the game thread to execute **********/
 	auto GameThread_InitDocGen = [this](const FString& DocTitle, const FString& IntermediateDir) -> bool
 	{
-		/*UE_LOG(LogKantanDocGen, Log, TEXT("{PROCESSOR}: Initializing doc generator for %s"), *DocTitle);*/
 		Log(FString::Printf(TEXT("Initializing doc generator for %s"), *DocTitle));
 
 		Current->Task->Notification->SetExpireDuration(2.0f);
@@ -201,7 +200,6 @@ void FDocGenTaskProcessor::ProcessTask(const TSharedPtr<FDocGenTask>& InTask)
 
 	const TFunction<void()> GameThread_EnqueueEnumerators = [this]() -> void
 	{
-		/*UE_LOG(LogKantanDocGen, Log, TEXT("Enqueuing enumerators"));*/
 		Log(TEXT("Enqueuing enumerators"));
 
 		// @TODO: Specific class enumerator
@@ -219,6 +217,7 @@ void FDocGenTaskProcessor::ProcessTask(const TSharedPtr<FDocGenTask>& InTask)
 	auto GameThread_EnumerateNextObject = [this]() -> bool
 	{
 		Log(TEXT("Enumerating next object"));
+		
 		// We've just come in from another thread, check the source object is still around
 		Current->SourceObject.Reset();
 		Current->CurrentSpawners.Empty();
@@ -227,14 +226,12 @@ void FDocGenTaskProcessor::ProcessTask(const TSharedPtr<FDocGenTask>& InTask)
 		{
 			if (!IsValid(Obj))
 			{
-				/*UE_LOG(LogKantanDocGen, Warning, TEXT("Invalid object found in enumerator!"));*/
 				Warn(TEXT("Invalid object found in enumerator!"));
 				continue;
 			}
 			// Ignore if already processed
 			if (Current->Processed.Contains(Obj))
 			{
-				/*UE_LOG(LogKantanDocGen, Verbose, TEXT("Ignoring %s as already processed"), *Obj->GetName());*/
 				Log(FString::Printf(TEXT("Ignoring %s as already processed"), *Obj->GetName()));
 				continue;
 			}
@@ -287,9 +284,12 @@ void FDocGenTaskProcessor::ProcessTask(const TSharedPtr<FDocGenTask>& InTask)
 			Log(FString::Printf(TEXT("Trying to document spawner %s"), *Spawner->GetName()));
 			if (Spawner.IsValid())
 			{
+				const FKantanDocGenSettings& Settings = Current->Task->Settings;
+				
+				
 				// See if we can document this spawner
-				const auto K2_NodeInst =
-					Current->DocGen->GT_InitializeForSpawner(Spawner.Get(), Current->SourceObject.Get(), OutState);
+				const auto K2_NodeInst = Current->DocGen->GT_InitializeForSpawner(Spawner.Get(), Current->SourceObject.Get(),
+						Settings.bExcludeSuperClass, OutState);
 
 				if (K2_NodeInst == nullptr)
 				{
@@ -311,7 +311,6 @@ void FDocGenTaskProcessor::ProcessTask(const TSharedPtr<FDocGenTask>& InTask)
 
 	auto GameThread_FinalizeDocs = [this](const FString& OutputPath) -> bool
 	{
-		
 		Log(TEXT("Finalizing docs"));
 		const bool Result = Current->DocGen->GT_Finalize(OutputPath);
 
@@ -363,7 +362,6 @@ void FDocGenTaskProcessor::ProcessTask(const TSharedPtr<FDocGenTask>& InTask)
 			{
 				// NodeInst should hopefully not reference anything except stuff we control (ie graph object), and it's
 				// rooted so should be safe to deal with here
-
 				// Generate image
 				if (!Current->DocGen->GenerateNodeImage(NodeInst, NodeState))
 				{
@@ -466,6 +464,9 @@ FDocGenTaskProcessor::ProcessIntermediateDocs(const FString& IntermediateDir, co
 	UE_LOG(LogKantanDocGen, Log, TEXT("Processing intermediate docs in %s, using the KantanDocGen tool"),
 		   *IntermediateDir);
 
+	//TODO: Check if were going to do something with this
+	return EIntermediateProcessingResult::Success;
+	
 	auto& PluginManager = IPluginManager::Get();
 	const auto Plugin = PluginManager.FindPlugin(TEXT("KantanDocGen"));
 	if (!Plugin.IsValid())

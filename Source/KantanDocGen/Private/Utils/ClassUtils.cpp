@@ -14,10 +14,6 @@
 
 namespace Kds::DocGen::Utils
 {
-	FString FClassUtils::GetClassDescription(const UClass* Class)
-	{
-		return Class->GetToolTipText(false).ToString();
-	}
 	
 	FName FClassUtils::GetClassName(const UClass* Class)
 	{
@@ -28,6 +24,12 @@ namespace Kds::DocGen::Utils
 	{
 		return GetClassName(Class).ToString();
 	}
+	
+	FString FClassUtils::GetClassDescription(const UClass* Class)
+	{
+		return Class->GetToolTipText(false).ToString();
+	}
+	
 
 	FString FClassUtils::GetClassDisplayName(const UClass* Class)
 	{
