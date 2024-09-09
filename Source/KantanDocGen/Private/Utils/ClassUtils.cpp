@@ -16,50 +16,99 @@ namespace Kds::DocGen::Utils
 {
 	FString FClassUtils::GetClassDescription(const UClass* Class)
 	{
-		check(Class);
-		if (Class->HasAllClassFlags(CLASS_Interface))
+		return Class->GetToolTipText(false).ToString();
+	}
+	
+	FName FClassUtils::GetClassName(const UClass* Class)
+	{
+		return Class->GetFName();
+	}
+	
+	FString FClassUtils::GetClassNameString(const UClass* Class)
+	{
+		return GetClassName(Class).ToString();
+	}
+
+	FString FClassUtils::GetClassDisplayName(const UClass* Class)
+	{
+		
+		static const FName DisplayName("DisplayName");
+		if (Class->HasMetaData(DisplayName))
 		{
-			return "## UInterface cannot be documented ##";
+			return Class->GetMetaData(DisplayName);
 		}
 
-		FString ClassToolTip = Class->GetToolTipText().ToString();
-		if (ClassToolTip != FBlueprintEditorUtils::GetFriendlyClassDisplayName(Class).ToString())
+		return FBlueprintEditorUtils::GetFriendlyClassDisplayName(Class).ToString();
+	}
+
+	
+	FString FClassUtils::GetClassTree(const UClass* Class)
+	{
+		FString ClassTreeStr = *FClassUtils::GetClassDocName(Class);
+		const UClass* Parent = Class->GetSuperClass();
+
+		while (nullptr != Parent)
 		{
-			return ClassToolTip;
+			ClassTreeStr = FString::Printf(TEXT("%s > %s"), *FClassUtils::GetClassDocName(Parent), *ClassTreeStr);
+			Parent = Parent->GetSuperClass();
 		}
-		return "";
+
+		return ClassTreeStr;
+	}
+
+	FString FClassUtils::GetClassIncludePath(const UClass* Class)
+	{
+		static const FName PathKey("ModuleRelativePath");
+		FString Path = Class->GetMetaData(PathKey);
+
+		if (Path.IsEmpty())
+		{
+			Path = Class->GetPathName();
+			Path.RemoveFromEnd("." + Class->GetName());
+		}
+
+		return Path;
+	}
+
+	
+
+	FString FClassUtils::GetClassDisplayNameElseName(const UClass* Class)
+	{
+		if (const FString DisplayName = GetClassDisplayName(Class); !DisplayName.IsEmpty())
+		{
+			return DisplayName;
+		}
+		return GetClassNameString(Class);
 	}
 
 	FString FClassUtils::GetClassDocName(const UClass* Class)
 	{
-		check(Class);
-		FString Name = Class->GetName();
+		FString Name = GetClassNameString(Class);
 		if (!Class->HasAnyClassFlags(CLASS_Native))
 		{
 			Name.RemoveFromEnd(TEXT("_C"));
 			Name.RemoveFromStart(TEXT("SKEL_"));
 		}
-		static const FName DisplayName("DisplayName");
-		if (Class->HasMetaData(DisplayName))
+
+		if (const FString DisplayName = GetClassDisplayName(Class); !DisplayName.IsEmpty())
 		{
-			return Name + " (" + Class->GetDisplayNameText().ToString() + ")";
+			return Name + " (" + DisplayName + ")";
 		}
 		return Name;
 	}
 
-	FString FClassUtils::GetNodeDescription(UEdGraphNode* Node)
+	FString FClassUtils::GetNodeDescription(const UEdGraphNode* Node)
 	{
-		check(Node);
-		FString NodeDesc = Node->GetTooltipText().ToString();
-		if (NodeDesc != Node->GetClass()->GetToolTipText().ToString())
+		if (FString NodeDesc = Node->GetTooltipText().ToString();
+			NodeDesc != Node->GetClass()->GetToolTipText().ToString())
 		{
-			int32 TargetIdx = NodeDesc.Find(TEXT("Target is "), ESearchCase::CaseSensitive);
-			if (TargetIdx != INDEX_NONE)
+			if (const int32 TargetIdx = NodeDesc.Find(TEXT("Target is "), ESearchCase::CaseSensitive);
+				TargetIdx != INDEX_NONE)
 			{
 				NodeDesc = NodeDesc.Left(TargetIdx).TrimEnd();
 			}
 			return NodeDesc;
 		}
-		return "";
+		return "No description available.";
 	}
-};
+}; // namespace Kds::DocGen::Utils

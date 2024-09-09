@@ -17,9 +17,16 @@ namespace Kds::DocGen
 		class FClassUtils
 		{
 		public:
+			static FName GetClassName(const UClass* Class);
+			static FString GetClassNameString(const UClass* Class);
+			static FString GetClassDisplayName(const UClass* Class);
+			static FString GetClassTree(const UClass* Class);
+			static FString GetClassIncludePath(const UClass* Class);
 			static FString GetClassDescription(const UClass* Class);
+			static FString GetClassDisplayNameElseName(const UClass* Class);
 			static FString GetClassDocName(const UClass* Class);
-			static FString GetNodeDescription(UEdGraphNode* Node);
+			static FString GetNodeDescription(const UEdGraphNode* Node);
+			
 		};
 	}
 }

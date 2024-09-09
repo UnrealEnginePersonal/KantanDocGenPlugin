@@ -17,29 +17,24 @@ namespace Kds::DocGen::Models
 	struct FPropertyModel;
 	struct FEventModel;
 	struct FFunctionModel;
-	
+
 	struct FClassModel final : FBaseModel
 	{
-		FClassModel(const FString& InDocsName, const FString& InId, const FName& InDisplayName,
-					const FString& InDescription);
-		~FClassModel() = default;
-		
-		void AddProperty(const FPropertyModel& Property);
-		void AddEvent(const FEventModel& Event);
-		void AddFunction(const FFunctionModel& Function);
+		FClassModel(const FName& InName, const FString& InDescription);
+		virtual ~FClassModel() override = default;
 
-		const FString DocsName;
+		void AddProperty(const FPropertyModel& Property);
+		void AddEvent(const FFunctionModel& Event);
+		void AddFunction(const FFunctionModel& Function);
+		
+		FString DisplayName;
 		FString IncludePath;
 		FString ClassTree;
-		
-		
+
 		TArray<TSharedPtr<FPropertyModel>> Properties;
-		TArray<TSharedPtr<FEventModel>> Events;
+		TArray<TSharedPtr<FFunctionModel>> Events;
 		TArray<TSharedPtr<FFunctionModel>> Functions;
 
 		virtual FJsonObject ToJson() const override;
-		
-	private:
-		const FString Id;
 	};
 } // namespace Kds::DocGen::Models

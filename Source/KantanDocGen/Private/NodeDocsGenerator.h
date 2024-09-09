@@ -79,8 +79,7 @@ protected:
 	static TSharedPtr<Kds::DocGen::Models::FClassModel> InitClassDocXml(const UClass* Class,
 																		const FString& InDocsTitle);
 
-	static void AdjustNodeForSnapshot(const UEdGraphNode* Node);
-	static FString GetClassDocId(const UClass* Class);
+	static void AdjustNodeForSnapshot(const UEdGraphNode* Node);	
 	static FString GetNodeDocId(const UEdGraphNode* Node);
 	static UClass* GetAssociatedClass(UK2Node* NodeInst, UObject* Source);
 	static bool IsSpawnerDocumentable(UBlueprintNodeSpawner* Spawner, const bool bIsBlueprint);

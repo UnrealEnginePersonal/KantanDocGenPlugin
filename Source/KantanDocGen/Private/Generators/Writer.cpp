@@ -52,7 +52,7 @@ namespace Kds::DocGen
 			return;
 		}
 		FJsonObject JsonObject;		
-		const FString ModuleName = ClassDocsMap.begin().Value()->DocsName;
+		const FString ModuleName = this->GetDocsTitle();
 		const FString ModuleSourcePath = "TODO";
 		const FString ModuleType = "TODO";
 

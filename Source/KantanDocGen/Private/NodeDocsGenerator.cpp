@@ -123,7 +123,7 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 {
 	UK2Node* K2NodeInst = nullptr;
 	const bool bIsDocumentable = CanBeDocumented(Spawner, SourceObject);
-	const FString& Name  = SourceObject->GetName();
+	const FString& Name = SourceObject->GetName();
 	UE_LOG(LogKantanDocGen, Log, TEXT("Initializing for spawner %s..."), *GetNameSafe(Spawner));
 	UE_LOG(LogKantanDocGen, Log, TEXT("Source object is %s..."), *Name);
 	UE_LOG(LogKantanDocGen, Log, TEXT("Source object class is %s..."), *GetNameSafe(SourceObject->GetClass()));
@@ -155,8 +155,6 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 		// New class xml file needs adding
 		const TSharedPtr<Models::FClassModel> GeneratedModel = InitClassDocXml(AssociatedClass, Writer->GetDocsTitle());
 		Writer->AddClass(AssociatedClass, GeneratedModel);
-		/*ClassDocsXML.Add(AssociatedClass, );*/
-		// Also update the index xml
 		UpdateIndexDocWithClass(Writer.Get(), AssociatedClass, SourceObject);
 	}
 
@@ -164,7 +162,7 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 	{
 		OutState = FNodeProcessingState();
 		OutState.ClassModel = Writer->FindClassChecked(AssociatedClass);
-		OutState.ClassDocsPath = Writer->GetOutputDir() / GetClassDocId(AssociatedClass);
+		OutState.ClassDocsPath = Writer->GetOutputDir() / FClassUtils::GetClassNameString(AssociatedClass);
 	}
 	return K2NodeInst;
 }
@@ -173,19 +171,6 @@ bool FNodeDocsGenerator::GT_Finalize(const FString& OutputPath)
 {
 	UE_LOG(LogKantanDocGen, Log, TEXT("Generating documentation..."));
 
-	/*
-	if (this->Settings->ExportMethod == EExportMethod::JSON)
-	{
-		UE_LOG(LogKantanDocGen, Log, TEXT("Exporting to JSON..."));
-
-		UE_LOG(LogKantanDocGen, Error, TEXT("JSON export not implemented."));
-		return false;
-	}
-	else if (this->Settings && this->Settings->ExportMethod == EExportMethod::XML)
-	{
-
-		return true;
-	}*/
 	if (!SaveClassDocXml(OutputPath))
 	{
 		return false;
@@ -351,24 +336,6 @@ bool ExtractPinInformation(const UEdGraphPin* Pin, FString& OutName, FString& Ou
 	return true;
 }
 
-/************************************************************************/
-/* Start of the actual implementation 									*/
-/************************************************************************/
-/*TSharedPtr<FXmlFile> FNodeDocsGenerator::InitIndexXml(const FString& IndexTitle)
-{
-	const FString FileTemplate = R"xxx(<?xml version="1.0" encoding="UTF-8"?>
-<root></root>)xxx";
-
-	TSharedPtr<FXmlFile> File = MakeShared<FXmlFile>(FileTemplate, EConstructMethod::ConstructFromBuffer);
-	auto Root = File->GetRootNode();
-
-	AppendChildCDATA(Root, TEXT("display_name"), IndexTitle);
-	AppendChild(Root, TEXT("classes"));
-	AppendChild(Root, TEXT("structs"));
-	AppendChild(Root, TEXT("enums"));
-	return File;
-}*/
-
 inline static FPropertyModel CreatePropertyModel(const FProperty* Prop)
 {
 	const FName DisplayName = FName(*Prop->GetDisplayNameText().ToString());
@@ -389,96 +356,73 @@ inline static FPropertyModel CreatePropertyModel(const FProperty* Prop)
 	return PropertyModel;
 }
 
+static FFunctionModel CreateFunctionModel(const UFunction* Function)
+{
+	// Extract basic function information
+	const FName FunctionName = Function->GetFName();
+	const FString FunctionFullName = Function->GetPathName();
+	const FString FunctionDisplayName = Function->GetDisplayNameText().ToString();
+	const FString FunctionDescription = Function->GetToolTipText().ToString();
+
+	// Check blueprint-related properties
+	bool bBlueprintCallable = Function->HasAnyFunctionFlags(FUNC_BlueprintCallable);
+	bool bBlueprintPure = Function->HasAnyFunctionFlags(FUNC_BlueprintPure);
+	bool bBlueprintEvent = Function->HasAnyFunctionFlags(FUNC_BlueprintEvent);
+
+	// Create a function model
+	FFunctionModel FunctionModel = FFunctionModel(FunctionName, FunctionFullName, FunctionDescription, FString(),
+												  bBlueprintCallable, bBlueprintPure, bBlueprintEvent);
+
+	// Process function parameters
+	for (TFieldIterator<FProperty> ParamIt(Function); ParamIt; ++ParamIt)
+	{
+		const FProperty* Param = *ParamIt;
+		const FPropertyModel ParamModel = CreatePropertyModel(Param);
+		FunctionModel.AddParameter(ParamModel);
+	}
+
+	return FunctionModel;
+}
+
+
 TSharedPtr<Models::FClassModel> FNodeDocsGenerator::InitClassDocXml(const UClass* Class, const FString& InDocsTitle)
 {
 	UE_LOG(LogKantanDocGen, Log, TEXT("Initializing class doc xml for %s..."), *Class->GetName());
 
-	TSharedPtr<Models::FClassModel> ClassModel =
-		MakeShared<Models::FClassModel>(InDocsTitle, GetClassDocId(Class), FName(FClassUtils::GetClassDocName(Class)),
-										FClassUtils::GetClassDescription(Class));
+	const FName ClassName = FClassUtils::GetClassName(Class);
+	const FString ClassDescription = FClassUtils::GetClassDescription(Class);	
+	const auto ClassModel = MakeShared<FClassModel>(ClassName, ClassDescription);			
 
+	ClassModel->DisplayName =  FClassUtils::GetClassDisplayName(Class);	
+	ClassModel->IncludePath = FClassUtils::GetClassIncludePath(Class);
+	ClassModel->ClassTree = FClassUtils::GetClassTree(Class);
 
-	static const FName PathKey("ModuleRelativePath");
-	FString Path = Class->GetMetaData(PathKey);
-	if (Path.IsEmpty())
+	// Process Properties
+	for (TFieldIterator<FProperty> It(Class, EFieldIteratorFlags::IncludeSuper); It; ++It)
 	{
-		Path = Class->GetPathName();
-		Path.RemoveFromEnd("." + Class->GetName());
+		const FProperty* Prop = *It;
+		const FPropertyModel PropertyModel = CreatePropertyModel(Prop);
+		ClassModel->AddProperty(PropertyModel);		
 	}
 
-	ClassModel->IncludePath = Path;
-	const UClass* Parent = Class->GetSuperClass();
-	FString ClassTreeStr = *FClassUtils::GetClassDocName(Class);
-
-	while (nullptr != Parent)
+	// Process Functions
+	for (TFieldIterator<UFunction> It(Class, EFieldIteratorFlags::IncludeSuper); It; ++It)
 	{
-		ClassTreeStr = FString::Printf(TEXT("%s > %s"), *FClassUtils::GetClassDocName(Parent), *ClassTreeStr);
-		Parent = Parent->GetSuperClass();
-	}
-
-	// AppendChildCDATA(Root, TEXT("classTree"), ClassTreeStr);
-	ClassModel->ClassTree = ClassTreeStr;
-
-	// FXmlNode* Props = AppendChild(Root, TEXT("properties"));
-	for (TFieldIterator<FProperty> It(Class, EFieldIteratorFlags::ExcludeSuper); It; ++It)
-	{
-		if ((It->PropertyFlags & (CPF_BlueprintVisible | CPF_Edit)) != 0)
+		if (const UFunction* Function = *It; !Function->HasAnyFunctionFlags(FUNC_Event))
 		{
-			/*const FName DisplayName = FName(*It->GetDisplayNameText().ToString());
-			const FString Description = It->GetToolTipText().ToString();
-			const auto CPPType = It->GetCPPType();
-			const auto CPPForwardDeclare = It->GetCPPTypeForwardDeclaration();
-			const auto DisplayType = It->GetCPPType();
-			
-			// Create a property model for the parameter
-			FPropertyModel PropertyModel(DisplayName, Description);
-			PropertyModel.RawDescription = Description;
-			PropertyModel.RawShortDescription = Description;
-			PropertyModel.Tooltip = Description;
-			PropertyModel.CPPType = CPPType;
-			PropertyModel.CPPTypeForwardDeclaration = CPPForwardDeclare;
-			PropertyModel.Type = DisplayType;
-			PropertyModel.DisplayType = DisplayType;
-			*/
-			const FProperty* Prop = *It;
-			const FPropertyModel PropertyModel = CreatePropertyModel(Prop);			
-			ClassModel->AddProperty(PropertyModel);
+			const FFunctionModel FunctionModel = CreateFunctionModel(Function);
+			ClassModel->AddFunction(FunctionModel);
 		}
 	}
 
-	/**
-	 *	Documenting function
-	 */
-	for (TFieldIterator<UFunction> It(Class, EFieldIteratorFlags::ExcludeSuper); It; ++It)
+	// Process Events
+	for (TFieldIterator<UFunction> It(Class, EFieldIteratorFlags::IncludeSuper); It; ++It)
 	{
-		const UFunction* Function = *It;
-
-		// Extract basic function information
-		const FName FunctionName = Function->GetFName();
-		const FString FunctionFullName = Function->GetPathName();
-		const FString FunctionDisplayName = Function->GetDisplayNameText().ToString();
-		const FString FunctionDescription = Function->GetToolTipText().ToString();
-
-		// Check blueprint-related properties
-		bool bBlueprintCallable = Function->HasAnyFunctionFlags(FUNC_BlueprintCallable);
-		bool bBlueprintPure = Function->HasAnyFunctionFlags(FUNC_BlueprintPure);
-		bool bBlueprintEvent = Function->HasAnyFunctionFlags(FUNC_BlueprintEvent);
-
-		// Create a function model
-		FFunctionModel FunctionModel = FFunctionModel(FunctionName, FunctionFullName, FunctionDescription, 
-			FString(), bBlueprintCallable, bBlueprintPure, bBlueprintEvent);
-
-		// Process function parameters
-		for (TFieldIterator<FProperty> ParamIt(Function); ParamIt; ++ParamIt)
+		if (const UFunction* Function = *It; Function->HasAnyFunctionFlags(FUNC_Event))
 		{
-			
-			const FProperty* Param = *ParamIt;
-			const FPropertyModel ParamModel = CreatePropertyModel(Param);
-			FunctionModel.AddParameter(ParamModel);
+			const FFunctionModel EventModel = CreateFunctionModel(Function);
+			ClassModel->AddEvent(EventModel);
 		}
-
-		// Add the function model to the class model
-		ClassModel->AddFunction(FunctionModel);
 	}
 
 	return ClassModel;
@@ -690,19 +634,11 @@ bool FNodeDocsGenerator::GenerateNodeDocs(UK2Node* Node, FNodeProcessingState& S
 bool FNodeDocsGenerator::SaveIndexXml(const FString& OutDir) const
 {
 	auto Path = OutDir / TEXT("index.xml");
-	/*IndexXml->Save(Path);*/
 	return true;
 }
 
 bool FNodeDocsGenerator::SaveClassDocXml(const FString& OutDir) const
 {
-	/*for (const auto& Entry : ClassDocsXML)
-	{
-		auto ClassId = GetClassDocId(Entry.Key.Get());
-		auto Path = OutDir / ClassId / (ClassId + TEXT(".xml"));
-		Entry.Value->Save(Path);
-	}
-	*/
 	UE_LOG(LogKantanDocGen, Log, TEXT("Saving class doc xml..."));
 	Writer->Save();
 	return true;
@@ -711,18 +647,13 @@ bool FNodeDocsGenerator::SaveClassDocXml(const FString& OutDir) const
 void FNodeDocsGenerator::AdjustNodeForSnapshot(const UEdGraphNode* Node)
 {
 	// Hide default value box containing 'self' for Target pin
-	if (auto K2_Schema = Cast<UEdGraphSchema_K2>(Node->GetSchema()))
+	if (const auto K2_Schema = Cast<UEdGraphSchema_K2>(Node->GetSchema()))
 	{
-		if (auto TargetPin = Node->FindPin(K2_Schema->PN_Self))
+		if (const auto TargetPin = Node->FindPin(K2_Schema->PN_Self))
 		{
 			TargetPin->bDefaultValueIsIgnored = true;
 		}
 	}
-}
-
-FString FNodeDocsGenerator::GetClassDocId(const UClass* Class)
-{
-	return Class->GetName();
 }
 
 FString FNodeDocsGenerator::GetNodeDocId(const UEdGraphNode* Node)
@@ -749,10 +680,12 @@ UClass* FNodeDocsGenerator::GetAssociatedClass(UK2Node* NodeInst, UObject* Sourc
 			UClass* OwnerClass = Func->GetOwnerClass();
 			if (OwnerClass->ClassGeneratedBy)
 			{
-				UBlueprint* ClassBP = Cast<UBlueprint>(OwnerClass->ClassGeneratedBy);
-				if (ClassBP && ClassBP->GeneratedClass)
+				if (UBlueprint* ClassBP = Cast<UBlueprint>(OwnerClass->ClassGeneratedBy))
 				{
-					return ClassBP->GeneratedClass;
+					if (ClassBP && ClassBP->GeneratedClass)
+					{
+						return ClassBP->GeneratedClass;
+					}
 				}
 			}
 			return OwnerClass;
