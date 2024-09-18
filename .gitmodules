@@ -1,0 +1,3 @@
+[submodule "ThirdParty/uedoxygen"]
+	path = ThirdParty/uedoxygen
+	url = git@github.com:UnrealEnginePersonal/ue-doxygen.git
