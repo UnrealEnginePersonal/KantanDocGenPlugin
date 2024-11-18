@@ -94,7 +94,7 @@ bool FNodeDocsGenerator::GT_Init(const FString& InDocsTitle, const FString& InOu
 }
 
 UK2Node* FNodeDocsGenerator::GT_DocumentSimpleObject(UObject* SourceObject, const bool bExcludeSuper,
-													 FNodeProcessingState& OutState)
+													 FNodeProcessingState& OutState) const
 {
 	UE_LOG(LogKantanDocGen, Log, TEXT("Documenting object %s..."), *GetNameSafe(SourceObject));
 
@@ -121,7 +121,7 @@ UK2Node* FNodeDocsGenerator::GT_DocumentSimpleObject(UObject* SourceObject, cons
 }
 
 UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spawner, UObject* SourceObject,
-													 const bool bExcludeSuper, FNodeProcessingState& OutState)
+													 const bool bExcludeSuper, FNodeProcessingState& OutState) const
 {
 	UK2Node* K2NodeInst = nullptr;
 	const bool bIsDocumentable = CanBeDocumented(Spawner, SourceObject);
@@ -161,7 +161,7 @@ UK2Node* FNodeDocsGenerator::GT_InitializeForSpawner(UBlueprintNodeSpawner* Spaw
 	return K2NodeInst;
 }
 
-bool FNodeDocsGenerator::GT_Finalize(const FString& OutputPath)
+bool FNodeDocsGenerator::GT_Finalize(const FString& OutputPath) const
 {
 	UE_LOG(LogKantanDocGen, Log, TEXT("Generating documentation..."));
 
@@ -205,18 +205,18 @@ bool FNodeDocsGenerator::GenerateNodeImage(UEdGraphNode* Node, FNodeProcessingSt
 
 	const FString NodeName = GetNodeDocId(Node);
 
-	bool bSuccess = DocGenThreads::RunOnGameThreadRetVal(
+	const bool bSuccess = DocGenThreads::RunOnGameThreadRetVal(
 		[&]
 		{
-			auto NodeWidget = FNodeFactory::CreateNodeWidget(Node);
+			const auto NodeWidget = FNodeFactory::CreateNodeWidget(Node);
 			NodeWidget->SetOwner(GraphPanel.ToSharedRef());
 
 			constexpr bool bUseGammaCorrection = false;
 			FWidgetRenderer Renderer(bUseGammaCorrection);
 			Renderer.SetIsPrepassNeeded(true);
-			auto RenderTarget = Renderer.DrawWidget(NodeWidget.ToSharedRef(), FVector2D(1024.0f, 1024.0f));
+			const auto RenderTarget = Renderer.DrawWidget(NodeWidget.ToSharedRef(), FVector2D(1024.0f, 1024.0f));
 
-			auto Desired = NodeWidget->GetDesiredSize();
+			const auto Desired = NodeWidget->GetDesiredSize();
 
 			FTextureRenderTargetResource* RTResource = RenderTarget->GameThread_GetRenderTargetResource();
 			const FIntRect Rect = FIntRect(0, 0, static_cast<int32>(Desired.X), static_cast<int32>(Desired.Y));
@@ -232,7 +232,7 @@ bool FNodeDocsGenerator::GenerateNodeImage(UEdGraphNode* Node, FNodeProcessingSt
 
 			IImageWrapperModule& ImageWrapperModule =
 				FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-			TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+			const TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 			TArray<uint8> CompressedImage;
 
@@ -334,6 +334,7 @@ inline static FPropertyModel CreatePropertyModel(const FProperty* Prop)
 	const FName DisplayName = FName(*Prop->GetDisplayNameText().ToString());
 	const FString Description = Prop->GetToolTipText().ToString();
 	const auto CPPType = Prop->GetCPPType();
+	// ReSharper disable once CppDeprecatedEntity
 	const auto CPPForwardDeclare = Prop->GetCPPTypeForwardDeclaration();
 	const auto DisplayType = Prop->GetCPPType();
 
@@ -629,7 +630,7 @@ bool FNodeDocsGenerator::GenerateNodeDocs(UK2Node* Node, FNodeProcessingState& S
 	return true;
 }
 
-bool FNodeDocsGenerator::SaveIndexXml(const FString& OutDir) const
+bool FNodeDocsGenerator::SaveIndexXml(const FString& OutDir)
 {
 	auto Path = OutDir / TEXT("index.xml");
 	return true;
@@ -792,7 +793,8 @@ bool FNodeDocsGenerator::CanBeDocumented(UBlueprintNodeSpawner* Spawner, UObject
 	const UClass* ObjectAsClass = Cast<UClass>(SourceObject);
 	bool bIsDocumentable = true;
 
-	bIsDocumentable &= ObjectAsClass == nullptr || !ObjectAsClass->GetDefaultObject()->IsA<UAnimGraphNode_Base>();
+	bIsDocumentable &= ObjectAsClass == nullptr ||
+		!ObjectAsClass->GetDefaultObject()->IsA<UAnimGraphNode_Base>();
 
 	return bIsDocumentable;
 }

@@ -52,12 +52,12 @@ public:
 	bool GT_Init(const FString& InDocsTitle, const FString& InOutputDir,
 				 UClass* BlueprintContextClass = AActor::StaticClass());
 
-	bool GT_Finalize(const FString& OutputPath);
+	bool GT_Finalize(const FString& OutputPath) const;
 
-	UK2Node* GT_DocumentSimpleObject(UObject* SourceObject, const bool bExcludeSuper, FNodeProcessingState& OutState);
+	UK2Node* GT_DocumentSimpleObject(UObject* SourceObject, const bool bExcludeSuper, FNodeProcessingState& OutState) const;
 
 	UK2Node* GT_InitializeForSpawner(UBlueprintNodeSpawner* Spawner, UObject* SourceObject, const bool bExcludeSuper,
-									 FNodeProcessingState& OutState);
+									 FNodeProcessingState& OutState) const;
 	/**/
 	/** Callable from background thread */
 	bool GenerateNodeImage(UEdGraphNode* Node, FNodeProcessingState& State);
@@ -65,7 +65,7 @@ public:
 	/**/
 
 protected:
-	bool SaveIndexXml(const FString& OutDir) const;
+	static bool SaveIndexXml(const FString& OutDir);
 	bool SaveClassDocXml(const FString& OutDir) const;
 
 	void CleanUp();

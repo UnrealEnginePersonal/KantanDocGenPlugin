@@ -38,6 +38,6 @@ public class KantanDocGen : ModuleRules
 			}
 		);
 		
-		PrivateDependencyModuleNames.Add("KdsLogging");
+		//PrivateDependencyModuleNames.Add("KdsLogging");
 	}
 }

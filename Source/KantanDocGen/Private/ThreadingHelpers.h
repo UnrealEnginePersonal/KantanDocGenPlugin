@@ -35,7 +35,7 @@ namespace DocGenThreads
 			Result = Func(Args...);
 		};
 
-		FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady(
+		const FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady(
 			NullaryFunc, TStatId(), nullptr, ENamedThreads::GameThread);
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(Task);
 

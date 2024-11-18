@@ -71,7 +71,7 @@ void FKantanDocGenModule::ShutdownModule()
 }
 
 // @TODO: Idea was to allow quoted values containing spaces, but this isn't possible since the initial console string has
-// already been split by whitespace, ignoring quotes...
+//			already been split by whitespace, ignoring quotes...
 inline bool MatchPotentiallyQuoted(const TCHAR* Stream, const TCHAR* Match, FString& Value)
 {
 	while ((*Stream == ' ') || (*Stream == 9))

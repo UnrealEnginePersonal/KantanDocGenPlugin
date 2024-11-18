@@ -15,12 +15,10 @@
     {
       "Name": "KantanDocGen",
       "Type": "Editor"
-    }
-  ],
-  "Plugins": [
+    },
     {
-      "Name": "KdsLogging",
-      "Enabled": true
+        "Name": "KantanDoxygen",
+        "Type": "Editor"
     }
   ]
 }

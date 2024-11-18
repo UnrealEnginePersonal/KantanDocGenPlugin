@@ -1,5 +1,6 @@
 ﻿#include "DocGenSettings.h"
 
+#include "Models/FunctionModel.h"
 #include "Utils/ModuleUtils.h"
 
 using namespace Kds::DocGen::Utils;
